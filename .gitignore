@@ -1,0 +1,46 @@
+# ========================
+# Visual Studio
+# ========================
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# ========================
+# Build results
+# ========================
+bin/
+obj/
+Debug/
+Release/
+
+# ========================
+# Rider
+# ========================
+.idea/
+
+# ========================
+# ASP.NET Core
+# ========================
+# appsettings for development (can contain secrets)
+appsettings.Development.json
+
+# EF Core Migrations history (optional: you can keep)
+# Migrations/
+
+# ========================
+# Logs
+# ========================
+*.log
+
+# ========================
+# OS generated
+# ========================
+.DS_Store
+Thumbs.db
+
+# ========================
+# Optional: user secrets (if using Secret Manager)
+# ========================
+secrets.json
