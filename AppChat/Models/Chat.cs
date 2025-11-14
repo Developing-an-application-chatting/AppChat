@@ -2,12 +2,12 @@
 
 namespace AppChat.Models
 {
-    [Table("Conversations")]
-    public class Conversation
+    [Table("Chats")]
+    public class Chat
     {
         public int Id { get; set; }
-        public int User1Id { get; set; }
-        public int User2Id { get; set; }
+        public int UserAId { get; set; }
+        public int UserBId { get; set; }
         public string LastMessage { get; set; } = string.Empty;
         public DateTime LastMessageTime { get; set; }
         public int UnreadCount { get; set; }
