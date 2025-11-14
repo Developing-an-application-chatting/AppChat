@@ -13,7 +13,7 @@ namespace AppChat.Services
         {
             var msg = new Message
             {
-                ConversationId = int.Parse(converId),
+                ChatId = int.Parse(converId),
                 SenderId = int.Parse(senderId),
                 Content = content,
                 SentAt = DateTime.UtcNow,

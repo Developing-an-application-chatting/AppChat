@@ -18,26 +18,28 @@ namespace AppChat.Controllers
             _context = context;
         }
 
-        [Authorize]
-        [HttpGet("{conversationId}")]   //https://localhost:5047/message/1
-        public async Task<IActionResult> GetMessages(int conversationId)
+        //[Authorize]
+        [HttpGet("{ChatId}")]   //https://localhost:5047/message/1
+        public async Task<IActionResult> GetMessages(int ChatId)
         {
             try
             {
-                var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)
-                    ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+                //var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                //    ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
 
-                if (!int.TryParse(userIdClaim, out int userId))
-                    return Unauthorized(new { message = "Không xác định được người dùng." });
+                //if (!int.TryParse(userIdClaim, out int userId))
+                //    return Unauthorized(new { message = "Không xác định được người dùng." });
+                int userId = 1;
 
-                bool isParticipant = await _context.Conversations
-                    .AnyAsync(c => c.Id == conversationId && (c.User1Id == userId || c.User2Id == userId));
+
+                bool isParticipant = await _context.Chats
+                    .AnyAsync(c => c.Id == ChatId && (c.UserAId == userId || c.UserBId == userId));
 
                 if (!isParticipant)
                     return Forbid("Bạn không có quyền truy cập vào cuộc trò chuyện này.");
 
                 var messages = await _context.Messages
-                    .Where(m => m.ConversationId == conversationId)
+                    .Where(m => m.ChatId == ChatId)
                     .Join(_context.Users,
                           m => m.SenderId,
                           u => u.Id,
