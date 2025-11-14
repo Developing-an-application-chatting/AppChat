@@ -27,7 +27,7 @@ Release/
 appsettings.Development.json
 
 # EF Core Migrations history (optional: you can keep)
-# Migrations/
+Migrations/
 
 # ========================
 # Logs
