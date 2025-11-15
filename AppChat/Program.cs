@@ -8,15 +8,19 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
 
-// PORT 
-var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-// DB Connection
-var DBUrl = Environment.GetEnvironmentVariable("DATABASE_URL") ?? "DefaultConnection";
-Console.WriteLine("DATABASE_URL = " + DBUrl); // Debug
-var connectionString = ConnectionStringConverter.ConvertConnectionString(DBUrl);
+
+
 
 var builder = WebApplication.CreateBuilder(args);
 
+// DB Connection
+var connectionString = ConnectionHelper.GetConnectionString(builder.Configuration);
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(connectionString)
+);
+
+// PORT 
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 builder.WebHost.UseUrls($"http://*:{port}");
 // Add services to the container.
 
@@ -24,10 +28,6 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString)
-);
 
 
 // Define Services for Dependency Injection
