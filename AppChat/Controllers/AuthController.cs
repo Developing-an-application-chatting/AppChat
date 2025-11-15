@@ -47,8 +47,7 @@ namespace CSharpLearning.Controllers
                 var user = await _context.Users.FirstOrDefaultAsync(u =>
                 u.PhoneNumber == dto.PhoneNumber);
 
-                if (user == null) return NotFound("User not found");
-                //Unauthorized("Invalid credentials");
+                if (user == null) return Unauthorized("Invalid credentials");
 
                 var accessToken = _tokenService.GenerateToken(user.Id.ToString(), user.PhoneNumber);
 
