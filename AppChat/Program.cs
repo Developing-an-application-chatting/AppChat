@@ -1,6 +1,7 @@
 ﻿using AppChat.Data;
 using AppChat.Hubs;
 using AppChat.Services;
+using AppChat.Utils;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -10,7 +11,8 @@ using System.Text;
 // PORT 
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 // DB Connection
-var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL") ?? "DefaultConnection";
+var DBUrl = Environment.GetEnvironmentVariable("DATABASE_URL") ?? "DefaultConnection";
+var connectionString = ConnectionStringConverter.ConvertConnectionString(DBUrl);
 
 var builder = WebApplication.CreateBuilder(args);
 
