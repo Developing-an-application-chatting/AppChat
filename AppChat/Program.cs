@@ -30,6 +30,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("connectionString"))
 );
 
+
 // Define Services for Dependency Injection
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<UserService>();
@@ -104,6 +105,14 @@ if (app.Environment.IsDevelopment())
 }
 
 //app.UseHttpsRedirection();  // Comment for deploy test
+
+// Init Migration
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
+
 
 app.UseCors("cors");
 app.UseStaticFiles();
