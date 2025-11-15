@@ -6,27 +6,26 @@ namespace AppChat.Utils
     {
         public static string GetConnectionString(IConfiguration configuration)
         {
-            var connectionString = configuration.GetConnectionString("DefaultConnection");
-
-            if (string.IsNullOrEmpty(connectionString))
+            var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+            if (!string.IsNullOrEmpty(databaseUrl))
             {
-                var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
-                if (!string.IsNullOrEmpty(databaseUrl))
+                Console.WriteLine($"Using DATABASE_URL from environment: {databaseUrl}");
+                if (databaseUrl.StartsWith("postgres://") || databaseUrl.StartsWith("postgresql://"))
                 {
-                    connectionString = BuildConnectionString(databaseUrl);
+                    return BuildConnectionString(databaseUrl);
                 }
-
+                return databaseUrl;
             }
 
-
-            if (string.IsNullOrEmpty(connectionString))
+            var connectionString = configuration.GetConnectionString("DefaultConnection");
+            if (!string.IsNullOrEmpty(connectionString))
             {
-                throw new InvalidOperationException("Connection string not found!");
+                Console.WriteLine($"Using DefaultConnection from appsettings: {connectionString}");
+                return connectionString;
             }
 
-            return connectionString;
+            throw new InvalidOperationException("Connection string not found!");
         }
-
 
         private static string BuildConnectionString(string databaseUrl)
         {
@@ -40,8 +39,8 @@ namespace AppChat.Utils
                 Username = userInfo[0],
                 Password = userInfo[1],
                 Database = databaseUri.LocalPath.TrimStart('/'),
-                SslMode = SslMode.Prefer
-                //TrustServerCertificate = true 
+                SslMode = SslMode.Require,
+                TrustServerCertificate = true
             };
 
             return builder.ToString();

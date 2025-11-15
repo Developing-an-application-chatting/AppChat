@@ -15,13 +15,14 @@ var builder = WebApplication.CreateBuilder(args);
 
 // DB Connection
 var connectionString = ConnectionHelper.GetConnectionString(builder.Configuration);
+Console.WriteLine($"Connection string: {connectionString}");
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString)
 );
 
 // PORT 
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-builder.WebHost.UseUrls($"http://*:{port}");
+//builder.WebHost.UseUrls($"http://*:{port}");
 // Add services to the container.
 
 builder.Services.AddControllers();
