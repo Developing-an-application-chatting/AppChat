@@ -92,7 +92,7 @@ namespace AppChat.Controllers
                         {
                             Chat.Id,
                             LastMessage = lastMessageContent,
-                            LastMessageTime = lastMessageTime.ToLocalTime(),
+                            LastMessageTime = lastMessageTime.ToLocalTime().ToString("HH:mm:ss dd/MM/yyyy"),
                             UnreadCount = Chat.UnreadCount
                         },
                         
@@ -102,7 +102,7 @@ namespace AppChat.Controllers
                             FullName = partnerInfo.FullName ?? "(Người dùng không tồn tại)",
                             AvatarUrl = partnerInfo?.AvatarUrl,
                             isOnline = partnerInfo?.IsOnline,
-                            lastSeen = partnerInfo?.LastSeen
+                            lastSeen = partnerInfo?.LastSeen.ToLocalTime().ToString("HH:mm:ss dd/MM/yyyy")
                         }
                     });
                 }
