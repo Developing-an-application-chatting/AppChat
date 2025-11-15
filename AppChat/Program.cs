@@ -12,15 +12,12 @@ using System.Text;
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 // DB Connection
 var DBUrl = Environment.GetEnvironmentVariable("DATABASE_URL") ?? "DefaultConnection";
+Console.WriteLine("DATABASE_URL = " + DBUrl); // Debug
 var connectionString = ConnectionStringConverter.ConvertConnectionString(DBUrl);
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.WebHost.ConfigureKestrel(options =>
-{
-    options.ListenAnyIP(int.Parse(port));
-});
-
+builder.WebHost.UseUrls($"http://*:{port}");
 // Add services to the container.
 
 builder.Services.AddControllers();
