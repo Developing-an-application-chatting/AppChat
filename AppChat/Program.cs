@@ -9,6 +9,8 @@ using System.Text;
 
 // PORT 
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+// DB Connection
+var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL");
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,16 +26,8 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Uncomment after setting up the database    // Comment for deploy test
-// DB Define
-//builder.Services.AddDbContext<AppDbContext>(options =>
-//    options.UseSqlServer(
-//        builder.Configuration.GetConnectionString("DefaultConnection") // Check appsetting.json to link local DB
-//    )
-//);
-
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+    options.UseNpgsql(builder.Configuration.GetConnectionString("connectionString"))
 );
 
 // Define Services for Dependency Injection
