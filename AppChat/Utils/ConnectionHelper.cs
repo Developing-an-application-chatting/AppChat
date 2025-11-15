@@ -11,7 +11,7 @@ namespace AppChat.Utils
             if (string.IsNullOrEmpty(connectionString))
             {
                 var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
-                if (string.IsNullOrEmpty(databaseUrl))
+                if (!string.IsNullOrEmpty(databaseUrl))
                 {
                     connectionString = BuildConnectionString(databaseUrl);
                 }
