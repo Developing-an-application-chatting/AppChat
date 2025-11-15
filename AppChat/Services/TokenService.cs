@@ -21,12 +21,12 @@ namespace AppChat.Services
 
 
         // Generating JWT Token 
-        public string GenerateToken(string UserId, string Email)
+        public string GenerateToken(string UserId, string PhoneNumber)
         {
             var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, UserId),
-                new Claim(JwtRegisteredClaimNames.Email, Email)
+                new Claim(JwtRegisteredClaimNames.PhoneNumber, PhoneNumber)
             };
 
             // Signing Credentials
@@ -37,7 +37,7 @@ namespace AppChat.Services
                 issuer: _config["Jwt:Issuer"],
                 audience: _config["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(double.Parse(_config["Jwt:AccessTokenMinutes"] ?? "30")),
+                expires: DateTime.UtcNow.AddMinutes(double.Parse(_config["Jwt:AccessTokenMinutes"] ?? "60")),
                 signingCredentials: creds
                 );
 
