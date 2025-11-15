@@ -1,12 +1,21 @@
-using AppChat.Data;
-using AppChat.Services;
+﻿using AppChat.Data;
 using AppChat.Hubs;
+using AppChat.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
+
+// PORT 
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ListenAnyIP(int.Parse(port));
+});
 
 // Add services to the container.
 
@@ -15,12 +24,16 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Uncomment after setting up the database
+// Uncomment after setting up the database    // Comment for deploy test
 // DB Define
+//builder.Services.AddDbContext<AppDbContext>(options =>
+//    options.UseSqlServer(
+//        builder.Configuration.GetConnectionString("DefaultConnection") // Check appsetting.json to link local DB
+//    )
+//);
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection") // Check appsetting.json to link local DB
-    )
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
 );
 
 // Define Services for Dependency Injection
@@ -65,8 +78,26 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     }
     );
 
+// CORS Define%
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("cors", policy =>
+    {
+        policy.SetIsOriginAllowed(_ => true)
+        //WithOrigins("http://127.0.0.1:5500")
+            //.AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
+
 // SignalR Hub
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(options =>
+    {
+        options.MaximumReceiveMessageSize = 1024 * 1024 * 30;
+    }
+);
 
 // Build the app
 var app = builder.Build();
@@ -78,8 +109,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();  // Comment for deploy test
 
+app.UseCors("cors");
+app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
