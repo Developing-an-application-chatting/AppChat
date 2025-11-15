@@ -10,7 +10,7 @@ using System.Text;
 // PORT 
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 // DB Connection
-var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL");
+var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL") ?? "DefaultConnection";
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,7 +27,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("connectionString"))
+    options.UseNpgsql(connectionString)
 );
 
 
