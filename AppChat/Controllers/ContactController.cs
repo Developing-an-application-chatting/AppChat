@@ -2,6 +2,7 @@
 using AppChat.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration.UserSecrets;
 using Microsoft.Identity.Client;
@@ -31,7 +32,7 @@ namespace AppChat.Controllers
 
                 //if (!int.TryParse(userIdClaim, out int userId))
                 //    return BadRequest("Invalid user ID in token.");
-                int userId = 2;
+                int userId = 1;
 
                 var friendList = await _context.Contacts
                     .Where(f => f.UserIdContactA == userId || f.UserIdContactB == userId)
@@ -39,17 +40,38 @@ namespace AppChat.Controllers
 
                 if (friendList == null) return NotFound();
 
+                var ContactInfo = new List<object>();
+
+                foreach (var contact in friendList)
+                {
+                    // Get user information for each contact
+                    var contactUserId = contact.UserIdContactA == userId ? contact.UserIdContactB : contact.UserIdContactA;
+                    var contactInfo = await _context.Users
+                        .Where(u => u.Id == contactUserId)
+                        .Select(u => new
+                        {
+                            Id = u.Id,
+                            FullName = u.LastName + " " + u.FirstName,
+                            isOnline = u.IsOnline,      
+                            UserAva = u.AvatarUrl
+                        })
+                        .FirstOrDefaultAsync();
+
+                    if (contactInfo != null)
+                    {
+                        ContactInfo.Add(new
+                        {
+                            contact.Id,
+                            contactInfo
+                        });
+                    }
+                }
+
                 // Result
                 var result = new
                 {
                     userId = userId,
-                    contacts = friendList.Select(contact => new
-                    {
-                        id = contact.Id,
-                        contactWith = contact.UserIdContactA == userId
-                            ? contact.UserIdContactB
-                            : contact.UserIdContactA
-                    }).ToList()
+                    contacts = ContactInfo
                 };
 
                 return Ok(result);
