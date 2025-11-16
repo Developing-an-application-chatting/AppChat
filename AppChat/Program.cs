@@ -16,16 +16,32 @@ var builder = WebApplication.CreateBuilder(args);
 //    )
 //);
 
+builder.Configuration
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
+    .AddEnvironmentVariables();
+
 // DB Connection
 var connectionString = ConnectionHelper.GetConnectionString(builder.Configuration);
 Console.WriteLine($"Connection string: {connectionString}");
+//builder.Services.AddDbContext<AppDbContext>(options =>   // Comment for testing local
+//    options.UseNpgsql(connectionString)
+//);
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString)
-);
+{
+    if (builder.Environment.IsDevelopment())
+    {
+        options.UseSqlServer(connectionString); // local SQL Server
+    }
+    else
+    {
+        options.UseNpgsql(connectionString);   // production Postgres
+    }
+});
 
 // PORT 
-var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-builder.WebHost.UseUrls($"http://*:{port}");
+//var port = Environment.GetEnvironmentVariable("PORT") ?? "5047";   // Comment for testing local
+//builder.WebHost.UseUrls($"http://*:{port}");
 // Add services to the container.
 
 builder.Services.AddControllers();
@@ -109,12 +125,12 @@ if (app.Environment.IsDevelopment())
 
 //app.UseHttpsRedirection();  // Comment for deploy test
 
-// Init Migration
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
-}
+//Init Migration
+//using (var scope = app.Services.CreateScope())
+//{
+//    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+//    db.Database.Migrate();
+//}
 
 
 app.UseCors("cors");
