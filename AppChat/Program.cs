@@ -10,12 +10,6 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-//builder.Services.AddDbContext<AppDbContext>(options =>
-//    options.UseSqlServer(
-//        builder.Configuration.GetConnectionString("DefaultConnection") // Comment for testing deploy/
-//    )
-//);
-
 builder.Configuration
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
@@ -24,9 +18,6 @@ builder.Configuration
 // DB Connection
 var connectionString = ConnectionHelper.GetConnectionString(builder.Configuration);
 Console.WriteLine($"Connection string: {connectionString}");
-//builder.Services.AddDbContext<AppDbContext>(options =>   // Comment for testing local
-//    options.UseNpgsql(connectionString)
-//);
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     if (builder.Environment.IsDevelopment())
@@ -40,8 +31,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 });
 
 // PORT 
-//var port = Environment.GetEnvironmentVariable("PORT") ?? "5047";   // Comment for testing local
-//builder.WebHost.UseUrls($"http://*:{port}");
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5047";   // Comment for testing local
+
+// Listening on any url with port from hosting
+builder.WebHost.UseUrls($"http://*:{port}");
 // Add services to the container.
 
 builder.Services.AddControllers();
