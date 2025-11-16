@@ -126,11 +126,11 @@ if (app.Environment.IsDevelopment())
 //app.UseHttpsRedirection();  // Comment for deploy test
 
 //Init Migration
-//using (var scope = app.Services.CreateScope())
-//{
-//    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-//    db.Database.Migrate();
-//}
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
 
 
 app.UseCors("cors");
