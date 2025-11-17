@@ -44,3 +44,10 @@ Thumbs.db
 # Optional: user secrets (if using Secret Manager)
 # ========================
 secrets.json
+
+# Bỏ qua toàn bộ nội dung trong wwwroot
+wwwroot/*
+
+# Giữ thư mục uploads
+!wwwroot/uploads/
+!wwwroot/uploads/.gitkeep
