@@ -26,7 +26,7 @@ namespace CSharpLearning.Controllers
             try
             {
                 var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.PhoneNumber == user.PhoneNumber);
-                if (existingUser != null) return BadRequest("Email already taken");
+                if (existingUser != null) return BadRequest("Phone already taken");
 
                 await _context.Users.AddAsync(user);
                 await _context.SaveChangesAsync();
@@ -39,7 +39,7 @@ namespace CSharpLearning.Controllers
             
         }
 
-        [HttpPost("login")]
+        [HttpPost("login")]  // Change the logic to check existing first and then register if it not
         public async Task <IActionResult> Login(LoginDTO dto)
         {
             try
