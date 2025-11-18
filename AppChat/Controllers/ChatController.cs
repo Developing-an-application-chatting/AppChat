@@ -18,29 +18,20 @@ namespace AppChat.Controllers
             _context = context;
         }
 
-        //[HttpGet]
-        //public async Task<IActionResult> GetAllConver()
-        //{
-        //    var convers = await _context.Conversations.ToListAsync();
-        //    return Ok(convers);
-        //}
-
-        //[Authorize]
-        [HttpGet]   // https://localhost:5047/Chat
+        [Authorize]
+        [HttpGet]
         public async Task<IActionResult> GetConverById()
         {
             try
             {
-                // Lấy UserIdContactA từ token
-                //var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)
-                //    ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+                //Lấy userId từ token
+                var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                    ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
 
-                //if (!int.TryParse(userIdClaim, out int userId))
-                //    return BadRequest("Invalid user ID in token.");
+                if (!int.TryParse(userIdClaim, out int userId))
+                    return BadRequest("Invalid user ID in token.");
 
-                int userId = 1;
-
-                // Lấy danh sách Conver của user
+                // Lấy danh sách chat của user
                 var conversations = await _context.Chats
                     .Where(c => c.UserAId == userId || c.UserBId == userId)
                     .OrderByDescending(c => c.LastMessageTime)
@@ -49,7 +40,7 @@ namespace AppChat.Controllers
                 if (!conversations.Any())
                     return NotFound(new { message = "Không tìm thấy cuộc trò chuyện nào." });
 
-                // Lấy danh sách các UserIdContactA tham gia phòng chat
+                // Lấy danh sách các user tham gia phòng chat
                 var otherUserIds = conversations
                     .Select(c => c.UserAId == userId ? c.UserBId : c.UserAId)
                     .Distinct()

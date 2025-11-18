@@ -2,9 +2,13 @@
 using AppChat.Hubs;
 using AppChat.Models;
 using AppChat.Models.DTOs;
+using AppChat.Utils;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace AppChat.Controllers
 {
@@ -15,29 +19,32 @@ namespace AppChat.Controllers
         private readonly AppDbContext _context;
         private readonly IHubContext<ChatHub> _hub;
         private readonly IWebHostEnvironment _env;
+        private readonly ILogger<MessageController> _logger;
 
         public MessageController(AppDbContext context,
                                  IHubContext<ChatHub> hubContext,
-                                 IWebHostEnvironment env)
+                                 IWebHostEnvironment env,
+                                 ILogger<MessageController> logger)
         {
             _context = context;
             _hub = hubContext;
             _env = env;
+            _logger = logger;
         }
 
         // GET: message/1
+        [Authorize]
         [HttpGet("{ChatId}")]
         public async Task<IActionResult> GetMessages(int ChatId)
         {
             try
             {
                 // Lấy userId từ token
-                //var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)
-                //    ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+                var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                    ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
 
-                //if (!int.TryParse(userIdClaim, out int userId))
-                //    return BadRequest("Invalid user ID in token.");
-                int userId = 1; // FIXED tạm cho test
+                if (!int.TryParse(userIdClaim, out int userId))
+                    return BadRequest("Invalid user ID in token.");
 
                 bool isParticipant = await _context.Chats
                     .AnyAsync(c => c.Id == ChatId && (c.UserAId == userId || c.UserBId == userId));
@@ -58,7 +65,7 @@ namespace AppChat.Controllers
                               m.Content,
                               m.FileUrl,
                               m.FileType,
-                              SentTime = m.SentAt.ToLocalTime().ToString("HH:mm:ss dd/MM/yyyy")
+                              SentTime = TimeHelper.ConvertToVietnamTime(m.SentAt)
                           })
                     .OrderBy(m => m.Id)
                     .ToListAsync();
@@ -72,24 +79,31 @@ namespace AppChat.Controllers
         }
 
         // POST: message/send
+        [Authorize]
         [HttpPost("send")]
         public async Task<IActionResult> SendMessage([FromForm] SendMessageDto dto)
         {
             try
             {
+                _logger.LogInformation("Received request: ChatId: {ChatId}, SenderId: {SenderId}, ReceiverId: {ReceiverId}, Content: {Content}",
+                    dto.ChatId, dto.SenderId, dto.ReceiverId, dto.Content);
+
+                _logger.LogInformation("Start processing file upload for message from user {SenderId} to {ReceiverId}.", dto.SenderId, dto.ReceiverId);
+
                 string? fileUrl = null;
 
-                // 1) Xử lý file upload nếu là file/image/video
+                // ============================
+                // 1) Xử lý upload file nếu có
+                // ============================
                 if (dto.FileType != "text" && dto.File != null)
                 {
-                    // đảm bảo wwwroot tồn tại
                     var wwwRoot = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
                     var uploadsDir = Path.Combine(wwwRoot, "uploads");
 
                     if (!Directory.Exists(uploadsDir))
                         Directory.CreateDirectory(uploadsDir);
 
-                    var fileName = $"{Guid.NewGuid()}{Path.GetExtension(dto.File.FileName)}";
+                    var fileName = Path.GetFileName(dto.File.FileName);
                     var filePath = Path.Combine(uploadsDir, fileName);
 
                     using (var stream = new FileStream(filePath, FileMode.Create))
@@ -97,14 +111,58 @@ namespace AppChat.Controllers
                         await dto.File.CopyToAsync(stream);
                     }
 
-                    // URL cho FE truy cập (tương lai deploy vẫn OK)
                     fileUrl = $"/uploads/{fileName}";
                 }
 
-                // 2) Tạo Message entity
+                // ====================================
+                // 2) Nếu ChatId null → tìm hoặc tạo chat
+                // ====================================
+                int chatId;
+                _logger.LogInformation("Check chatId from dto sending", dto.ChatId);
+
+
+                if (dto.ChatId == null)
+                {
+                    _logger.LogInformation("Checking if a chat exists between sender {SenderId} and receiver {ReceiverId}.", dto.SenderId, dto.ReceiverId);
+
+                    // tìm xem A và B đã có chat chưa
+                    var existingChat = await _context.Chats
+                        .FirstOrDefaultAsync(c =>
+                            (c.UserAId == dto.SenderId && c.UserBId == dto.ReceiverId) ||
+                            (c.UserAId == dto.ReceiverId && c.UserBId == dto.SenderId)
+                        );
+
+                    if (existingChat == null)
+                    {
+                        // tạo chat mới
+                        _logger.LogInformation("Creating new chat between sender {SenderId} and receiver {ReceiverId}.", dto.SenderId, dto.ReceiverId);
+
+                        existingChat = new Chat
+                        {
+                            UserAId = dto.SenderId,
+                            UserBId = dto.ReceiverId,
+                            LastMessage = "",
+                            LastMessageTime = DateTime.UtcNow,
+                            UnreadCount = 0
+                        };
+
+                        _context.Chats.Add(existingChat);
+                        await _context.SaveChangesAsync();
+                    }
+
+                    chatId = existingChat.Id;
+                }
+                else
+                {
+                    chatId = dto.ChatId.Value;
+                }
+
+                // ============================
+                // 3) Tạo và lưu Message
+                // ============================
                 var message = new Message
                 {
-                    ChatId = dto.ChatId,
+                    ChatId = chatId,
                     SenderId = dto.SenderId,
                     FileType = dto.FileType,
                     Content = dto.FileType == "text" ? dto.Content : null,
@@ -114,13 +172,34 @@ namespace AppChat.Controllers
                 };
 
                 _context.Messages.Add(message);
+                _logger.LogInformation("Message created with ChatId: {ChatId}, SenderId: {SenderId}, Content: {Content}", chatId, dto.SenderId, dto.Content ?? "No content (file message)");
+
+                // ============================
+                // 4) Cập nhật Chat (last message)
+                // ============================
+                var chatUpdate = await _context.Chats.FindAsync(chatId);
+
+                if (dto.FileType == "text")
+                    chatUpdate.LastMessage = dto.Content ?? "";
+                else
+                    chatUpdate.LastMessage = $"[{dto.FileType}]";
+
+                chatUpdate.LastMessageTime = DateTime.UtcNow;
+
+                // tăng unread count cho người nhận
+                if (dto.SenderId == chatUpdate.UserAId)
+                    chatUpdate.UnreadCount += 1;
+                else
+                    chatUpdate.UnreadCount += 1;
+
                 await _context.SaveChangesAsync();
 
-                // 3) Lấy tên người gửi (có thể tương lai lấy từ User table)
+                // ============================
+                // 5) Build MessageDto
+                // ============================
                 var sender = await _context.Users.FindAsync(dto.SenderId);
                 var senderName = sender != null ? $"{sender.FirstName} {sender.LastName}" : "Unknown";
 
-                // 4) Trả về MessageDto
                 var messageDto = new MessageDto
                 {
                     Id = message.Id,
@@ -129,21 +208,31 @@ namespace AppChat.Controllers
                     Content = message.Content,
                     FileUrl = message.FileUrl,
                     FileType = message.FileType,
-                    SentTime = message.SentAt.ToLocalTime().ToString("HH:mm:ss dd/MM/yyyy"),
+                    SentTime = TimeHelper.ConvertToVietnamTime(message.SentAt),
                     Status = message.Status
                 };
 
-                // 5) Gửi realtime SignalR
-                await _hub.Clients.Group(dto.ChatId.ToString())
+                // ============================
+                // 6) Gửi realtime SignalR
+                // ============================
+                _logger.LogInformation("Sending message {MessageId} to chat group {ChatId}.", message.Id, chatId);
+
+                await _hub.Clients.Group(chatId.ToString())
                     .SendAsync("ReceiveMessage", messageDto);
 
-                return Ok(messageDto);
+                // ============================
+                // 7) Trả về FE
+                // ============================
+                return Ok(new
+                {
+                    chatId = chatId,
+                    message = messageDto
+                });
             }
             catch (Exception ex)
             {
                 return BadRequest(new { message = "Lỗi gửi tin nhắn", error = ex.Message });
             }
         }
-
     }
 }
