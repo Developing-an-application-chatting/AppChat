@@ -50,4 +50,5 @@ wwwroot/*
 
 # Giữ thư mục uploads
 !wwwroot/uploads/
+wwwroot/uploads/*
 !wwwroot/uploads/.gitkeep
