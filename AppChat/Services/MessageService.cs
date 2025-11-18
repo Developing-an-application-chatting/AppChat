@@ -1,38 +1,25 @@
-﻿using AppChat.Data;
-using AppChat.Models;
+﻿using AppChat.Models.DTOs;
+using AppChat.Repositories;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace AppChat.Services
 {
     public class MessageService
     {
-        private readonly AppDbContext _context;
+        private readonly IMessageRepository _repo;
+        public MessageService(IMessageRepository repo) => _repo = repo;
 
-        public MessageService(AppDbContext context) => _context = context;
-
-        public async Task<Message> SaveMessage(string converId, string senderId, string content)
+        // Lấy tin nhắn theo chatId
+        public async Task<List<MessageDto>> GetMessagesByChatIdAsync(int chatId)
         {
-            var msg = new Message
-            {
-                ChatId = int.Parse(converId),
-                SenderId = int.Parse(senderId),
-                Content = content,
-                SentAt = DateTime.UtcNow,
-            };
-
-            await _context.Messages.AddAsync(msg);
-            await _context.SaveChangesAsync();
-
-            return msg;
+            return await _repo.GetMessagesByChatIdAsync(chatId);
         }
 
-        //public async Task MarkAsSeenAsync(int messageId)
-        //{
-        //    var msg = await _context.Messages.FindAsync(messageId);
-        //    if (msg != null)
-        //    {
-        //        msg.Status = "Seen";
-        //        await _context.SaveChangesAsync();
-        //    }
-        //}
+        // Gửi/lưu tin nhắn
+        public async Task<MessageDto> SendMessageAsync(int? chatId, int senderId, int receiverId, string? content, string fileType, string? fileUrl)
+        {
+            return await _repo.SendMessageAsync(chatId, senderId, receiverId, content, fileType, fileUrl);
+        }
     }
 }

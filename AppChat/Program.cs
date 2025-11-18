@@ -1,5 +1,6 @@
 ﻿using AppChat.Data;
 using AppChat.Hubs;
+using AppChat.Repositories;
 using AppChat.Services;
 using AppChat.Utils;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -7,53 +8,59 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
-
 var builder = WebApplication.CreateBuilder(args);
 
+// --- Configuration ---
 builder.Configuration
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
     .AddEnvironmentVariables();
 
-// DB Connection
+// --- DB Connection ---
 var connectionString = ConnectionHelper.GetConnectionString(builder.Configuration);
 Console.WriteLine($"Connection string: {connectionString}");
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     if (builder.Environment.IsDevelopment())
-    {
-        options.UseSqlServer(connectionString); // local SQL Server
-    }
+        options.UseSqlServer(connectionString);
     else
-    {
-        options.UseNpgsql(connectionString);   // production Postgres
-    }
+        options.UseNpgsql(connectionString);
 });
 
-// PORT 
-//var port = Environment.GetEnvironmentVariable("PORT") ?? "5047";   // Comment for local testing
-
-//// Listening on any url with port from hosting
-//builder.WebHost.UseUrls($"http://*:{port}");
-// Add services to the container.
-
+// --- Controllers + Swagger ---
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// ==============================
+// Dependency Injection 3 tầng
+// ==============================
 
-// Define Services for Dependency Injection
+// Repositories
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IChatRepository, ChatRepository>();
+builder.Services.AddScoped<IMessageRepository, MessageRepository>();
+builder.Services.AddScoped<IContactRepository, ContactRepository>();
+
+// Services
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<ChatService>();
 builder.Services.AddScoped<MessageService>();
+builder.Services.AddScoped<ContactService>();
 
-// Define JWT Configuration
+// ==============================
+// JWT Authentication
+// ==============================
+var jwtKey = builder.Configuration["Jwt:Key"]
+             ?? throw new Exception("JWT Key missing in configuration");
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "myIssuer";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "myAudience";
+var clockSkewSeconds = Convert.ToDouble(builder.Configuration["Jwt:ClockSkewSeconds"] ?? "30");
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        // JWT for API resquest
-        var jwtConfig = builder.Configuration.GetSection("Jwt");
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -61,14 +68,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
 
-            ValidIssuer = jwtConfig["Issuer"],
-            ValidAudience = jwtConfig["Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtConfig["Key"])),
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
 
-            ClockSkew = TimeSpan.FromSeconds(Convert.ToDouble(jwtConfig["ClockSkewSeconds"] ?? "30"))
+            ClockSkew = TimeSpan.FromSeconds(clockSkewSeconds)
         };
 
-        // JWT for SignalR Hub
+        // JWT for SignalR
         options.Events = new JwtBearerEvents
         {
             OnMessageReceived = context =>
@@ -77,65 +84,54 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 var path = context.HttpContext.Request.Path;
                 if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/chatHub"))
                 {
-                    Console.WriteLine("TOKEN (SignalR) = " + accessToken);
                     context.Token = accessToken;
                 }
                 return Task.CompletedTask;
             },
-
             OnAuthenticationFailed = context =>
             {
                 Console.WriteLine("AUTH FAILED (SignalR): " + context.Exception.Message);
-                Console.WriteLine("STACK: " + context.Exception);
                 return Task.CompletedTask;
             }
         };
-    }
-    );
+    });
 
-// CORS Define
+// ==============================
+// CORS
+// ==============================
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("cors", policy =>
     {
         policy.SetIsOriginAllowed(_ => true)
-        //WithOrigins("http://127.0.0.1:5500")
-            //.AllowAnyOrigin()
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
 
+// ==============================
 // SignalR Hub
+// ==============================
 builder.Services.AddSignalR(options =>
-    {
-        options.MaximumReceiveMessageSize = 1024 * 1024 * 30;
-        options.EnableDetailedErrors = true;
-    }
-);
+{
+    options.MaximumReceiveMessageSize = 1024 * 1024 * 30;
+    options.EnableDetailedErrors = true;
+});
 
-// Build the app
+// ==============================
+// Build App
+// ==============================
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-//app.UseHttpsRedirection();  // Comment for deploy test
-
-//Init Migration
-//using (var scope = app.Services.CreateScope())    // Comment for local testing
-//{
-//    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-//    db.Database.Migrate();
-//}
-
+// app.UseHttpsRedirection();
 app.UseRouting();
-
 app.UseCors("cors");
 
 app.UseStaticFiles(new StaticFileOptions
@@ -150,9 +146,10 @@ app.UseStaticFiles(new StaticFileOptions
 app.UseAuthentication();
 app.UseAuthorization();
 
-// SignalR endpoint
+// SignalR
 app.MapHub<ChatHub>("/chatHub").RequireAuthorization();
 
+// Controllers
 app.MapControllers();
 
 app.Run();

@@ -1,12 +1,8 @@
-﻿using AppChat.Data;
-using AppChat.Models;
+﻿using AppChat.Models;
 using AppChat.Services;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Routing;
-using Microsoft.EntityFrameworkCore;
 using System;
+using System.Threading.Tasks;
 
 namespace AppChat.Controllers
 {
@@ -14,97 +10,57 @@ namespace AppChat.Controllers
     [ApiController]
     public class UserController : ControllerBase
     {
-        private readonly AppDbContext _context;
         private readonly UserService _service;
+        public UserController(UserService service) => _service = service;
 
-        public UserController(AppDbContext context, UserService service)
-        {
-            _context = context;
-            _service = service;
-        }
-
-        //[Authorize]
         [HttpPost("new")]
         public async Task<IActionResult> CreateUser([FromBody] User newUser)
         {
             try
             {
-                await _service.CreateUser(newUser);
-                return CreatedAtAction(nameof(GetUserById), new { id = newUser.Id }, newUser);
+                var user = await _service.CreateUser(newUser);
+                return CreatedAtAction(nameof(GetUserById), new { id = user.Id }, user);
             }
-            catch (Exception e)
-            {
-                //return BadRequest(e.Message);
-                return BadRequest($"{e.Message} - {e.InnerException?.Message}");
-            }
+            catch (Exception e) { return BadRequest(e.Message); }
         }
 
-        //[Authorize]
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetUserById(int Id)
+        public async Task<IActionResult> GetUserById(int id)
         {
-            if (Id == null || Id <= 0) return BadRequest("Invalid Id");
-            try { 
-            
-                return Ok(await _service.GetUserById(Id));
-            }
-            catch (Exception e)
+            try
             {
-                return BadRequest(e.Message);
+                return Ok(await _service.GetUserById(id));
             }
-
+            catch (Exception e) { return BadRequest(e.Message); }
         }
 
-        //[Authorize]
         [HttpGet("list")]
         public async Task<IActionResult> GetAllUser()
         {
-            try
-            {
-                return Ok(await _service.GetAllUsersAsync());
-            }
-            catch (Exception e)
-            {
-                return BadRequest(e.Message);
-            }
-
+            try { return Ok(await _service.GetAllUsersAsync()); }
+            catch (Exception e) { return BadRequest(e.Message); }
         }
 
-        //[Authorize]
-        [HttpPut("update/{Id}")]
-        public async Task<IActionResult> UpdateUser(int Id, User updatedUser)
+        [HttpPut("update/{id}")]
+        public async Task<IActionResult> UpdateUser(int id, User updatedUser)
         {
-            if (Id == null || updatedUser == null) throw new ArgumentNullException("Null agruments provided");
             try
             {
-                await _service.UpdateUser(Id, updatedUser);
+                await _service.UpdateUser(id, updatedUser);
                 return NoContent();
             }
-            catch (Exception e)
-            {
-                return BadRequest(e.Message);
-
-            }
+            catch (Exception e) { return BadRequest(e.Message); }
         }
 
-        //[Authorize]
-        [HttpDelete("delete/{Id}")]
-        public async Task<IActionResult> DeleteUser(int Id)
+        [HttpDelete("delete/{id}")]
+        public async Task<IActionResult> DeleteUser(int id)
         {
-            if (Id == null || Id <= 0) return BadRequest("Invalid Id");
             try
             {
-                await _service.DeleteUser(Id);
+                await _service.DeleteUser(id);
                 return NoContent();
             }
-            catch (Exception e)
-            {
-                return BadRequest(e.Message);
-            }
+            catch (Exception e) { return BadRequest(e.Message); }
         }
-
     }
 }
-
-
-
