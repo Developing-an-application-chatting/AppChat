@@ -11,18 +11,8 @@ namespace AppChat.Models
         public string? Content { get; set; }
         public string? FileUrl { get; set; }
         public string? FileType { get; set; }
-        //public MessageStatus Status { get; set; } = MessageStatus.Sent;
         public string Status { get; set; } = string.Empty;
         public DateTime SentAt { get; set; } = DateTime.UtcNow;
     }
-
-    // Enums
-    //public enum MessageStatus
-    //{
-    //    Sent,
-    //    Delivered,
-    //    Read,
-    //    Failed
-    //}
 }
 
