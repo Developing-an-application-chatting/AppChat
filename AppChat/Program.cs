@@ -77,8 +77,16 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 var path = context.HttpContext.Request.Path;
                 if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/chatHub"))
                 {
+                    Console.WriteLine("TOKEN (SignalR) = " + accessToken);
                     context.Token = accessToken;
                 }
+                return Task.CompletedTask;
+            },
+
+            OnAuthenticationFailed = context =>
+            {
+                Console.WriteLine("AUTH FAILED (SignalR): " + context.Exception.Message);
+                Console.WriteLine("STACK: " + context.Exception);
                 return Task.CompletedTask;
             }
         };
@@ -103,6 +111,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddSignalR(options =>
     {
         options.MaximumReceiveMessageSize = 1024 * 1024 * 30;
+        options.EnableDetailedErrors = true;
     }
 );
 
@@ -125,9 +134,19 @@ if (app.Environment.IsDevelopment())
 //    db.Database.Migrate();
 //}
 
+app.UseRouting();
 
 app.UseCors("cors");
-app.UseStaticFiles();
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    ServeUnknownFileTypes = true,
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+    }
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 
