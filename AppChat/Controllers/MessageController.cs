@@ -203,6 +203,7 @@ namespace AppChat.Controllers
                 var messageDto = new MessageDto
                 {
                     Id = message.Id,
+                    ChatId = message.ChatId,
                     SenderId = message.SenderId,
                     SenderName = senderName,
                     Content = message.Content,
@@ -218,6 +219,12 @@ namespace AppChat.Controllers
                 _logger.LogInformation("Sending message {MessageId} to chat group {ChatId}.", message.Id, chatId);
 
                 await _hub.Clients.Group(chatId.ToString())
+                    .SendAsync("ReceiveMessage", messageDto);
+
+                await _hub.Clients.User(chatUpdate.UserBId.ToString())
+                    .SendAsync("ReceiveMessage", messageDto);
+
+                await _hub.Clients.User(chatUpdate.UserAId.ToString())
                     .SendAsync("ReceiveMessage", messageDto);
 
                 // ============================
