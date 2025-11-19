@@ -23,64 +23,26 @@ namespace CSharpLearning.Controllers
         }
 
         [HttpPost("register")]
-        //public async Task<IActionResult> Register(RegisterDTO dto)
-        //{
-        //    try
-        //    {
-        //        // Check if user are existing
-        //        var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.PhoneNumber == dto.PhoneNumber);
-        //        if (existingUser != null) return Ok(new { message = "User existed" }); // If existing, return
-
-        //        // Create new User
-        //        var newUser = new User
-        //        {
-        //            PhoneNumber = dto.PhoneNumber,
-        //            Password = dto.Password,
-        //            FirstName = dto.FirstName,
-        //            LastName = dto.LastName,
-        //            AvatarUrl = dto.AvatarUrl,
-        //        };
-
-        //        // Save to DB
-        //        await _context.Users.AddAsync(newUser);
-        //        await _context.SaveChangesAsync();
-        //        return Created(string.Empty, new {message = "User created"});
-        //    }
-        //    catch (Exception e)
-        //    {
-        //        return BadRequest(new { message = e.Message });
-        //    }
-        //}
-        public async Task<IActionResult> Register([FromForm] RegisterDTO dto, IFormFile avatar)
+        public async Task<IActionResult> Register(RegisterDTO dto)
         {
-            string avatarUrl = null;
-
-            if (avatar != null && avatar.Length > 0)
+            try
             {
-                var uploads = Path.Combine("wwwroot", "avatars");
-                if (!Directory.Exists(uploads)) Directory.CreateDirectory(uploads);
-
-                var fileName = Guid.NewGuid() + Path.GetExtension(avatar.FileName);
-                var filePath = Path.Combine(uploads, fileName);
-                using (var stream = new FileStream(filePath, FileMode.Create))
+                var newUser = new User
                 {
-                    await avatar.CopyToAsync(stream);
-                }
-                avatarUrl = $"{Request.Scheme}://{Request.Host}/avatars/{fileName}";
+                    PhoneNumber = dto.PhoneNumber,
+                    Password = dto.Password,
+                    FirstName = dto.FirstName,
+                    LastName = dto.LastName
+                };
+
+                await _context.Users.AddAsync(newUser);
+                await _context.SaveChangesAsync();
+                return Created(string.Empty, new { message = "User created" });
             }
-
-            var newUser = new User
+            catch (Exception e)
             {
-                PhoneNumber = dto.PhoneNumber,
-                Password = dto.Password,
-                FirstName = dto.FirstName,
-                LastName = dto.LastName,
-                AvatarUrl = avatarUrl
-            };
-
-            await _context.Users.AddAsync(newUser);
-            await _context.SaveChangesAsync();
-            return Created(string.Empty, new { message = "User created" });
+                return BadRequest(new { message = e.Message });
+            }
         }
 
 

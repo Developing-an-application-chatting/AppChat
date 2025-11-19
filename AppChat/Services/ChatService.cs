@@ -34,9 +34,7 @@ namespace AppChat.Services
                     {
                         u.Id,
                         FullName = u.FirstName + " " + u.LastName,
-                        u.AvatarUrl,
-                        u.IsOnline,
-                        u.LastSeen
+                        u.PhoneNumber
                     };
             }
 
