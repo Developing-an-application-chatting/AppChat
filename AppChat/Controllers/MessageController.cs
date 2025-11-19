@@ -44,6 +44,12 @@ namespace AppChat.Controllers
             try
             {
                 var messages = await _msgRepo.GetMessagesByChatIdAsync(chatId);
+                // Check if messages are null?
+                if (messages == null || !messages.Any())
+                {
+                    return Ok(new List<Message>()); 
+                }
+
                 return Ok(messages);
             }
             catch (Exception ex)
@@ -192,9 +198,7 @@ namespace AppChat.Controllers
                 // ============================
                 _logger.LogInformation("Sending message {MessageId} to chat group {ChatId}.", message.Id, chatId);
 
-                await _hub.Clients.Group(chatId.ToString())
-                    .SendAsync("ReceiveMessage", messageDto);
-
+                // Realtime to Sender and Receiver
                 await _hub.Clients.User(chatUpdate.UserBId.ToString())
                     .SendAsync("ReceiveMessage", messageDto);
 

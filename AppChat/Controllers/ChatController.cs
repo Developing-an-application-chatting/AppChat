@@ -1,4 +1,5 @@
-﻿using AppChat.Services;
+﻿using AppChat.Models;
+using AppChat.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -28,7 +29,11 @@ namespace AppChat.Controllers
                     return BadRequest("Invalid user ID in token.");
 
                 var conversations = await _service.GetConversationsAsync(userId);
-                if (conversations.Count == 0) return NotFound(new { message = "Không tìm thấy cuộc trò chuyện nào." });
+                // Check if conversations are null?
+                if (conversations == null || !conversations.Any())
+                {
+                    return Ok(new List<Chat>());
+                }
 
                 return Ok(conversations);
             }
