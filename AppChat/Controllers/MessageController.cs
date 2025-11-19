@@ -37,8 +37,8 @@ namespace AppChat.Controllers
         }
 
         // GET: /message/{chatId}
-        //[Authorize]
-        [HttpGet("{chatId}")]
+        [Authorize]
+        [HttpGet("{chatId}")]   // https://localhost:5047/message/{chatId}
         public async Task<IActionResult> GetMessages(int chatId)
         {
             try

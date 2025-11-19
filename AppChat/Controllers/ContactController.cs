@@ -21,21 +21,19 @@ namespace AppChat.Controllers
             _service = service;
         }
 
-        //[Authorize]
-        [HttpGet]  // https://localhost:5047/Contact
+        [Authorize]
+        [HttpGet]  // https://localhost:5047/contact
         public async Task<IActionResult> GetByUserId()
         {
             try
             {
 
                 // Lấy userId từ token
-                //var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)    // Comment for testing
-                //    ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+                var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                    ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
 
-                //if (!int.TryParse(userIdClaim, out int userId))
-                //    return BadRequest("Invalid user ID in token.");
-
-                int userId = 1;
+                if (!int.TryParse(userIdClaim, out int userId))
+                    return BadRequest("Invalid user ID in token.");
 
                 var contactInfo = await _service.GetContactsByUserIdAsync(userId);
                 // Check if contacts are null?

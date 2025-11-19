@@ -18,16 +18,15 @@ namespace AppChat.Controllers
             _service = service;
         }
 
-        //[Authorize]
-        [HttpGet]
+        [Authorize]
+        [HttpGet] // https://localhost:5047/chat
         public async Task<IActionResult> GetConversations()
         {
             try
             {
-                //var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                //if (!int.TryParse(userIdClaim, out int userId))
-                //    return BadRequest("Invalid user ID in token.");
-                int userId = 1;  // test deploy without auth
+                var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(userIdClaim, out int userId))
+                    return BadRequest("Invalid user ID in token.");
 
                 var conversations = await _service.GetConversationsAsync(userId);
                 // Check if conversations are null?

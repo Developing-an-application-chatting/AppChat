@@ -29,9 +29,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // PORT
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5047";   // Comment for local testing
-
-// Listening on any url with port from hosting
-builder.WebHost.UseUrls($"http://*:{port}");
+builder.WebHost.UseUrls($"http://*:{port}");  // Listening on any url with port from hosting
 
 // --- Controllers + Swagger ---
 builder.Services.AddControllers();
