@@ -28,10 +28,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 });
 
 // PORT
-//var port = Environment.GetEnvironmentVariable("PORT") ?? "5047";   // Comment for local testing
+var port = Environment.GetEnvironmentVariable("PORT") ?? "5047";   // Comment for local testing
 
-//// Listening on any url with port from hosting
-//builder.WebHost.UseUrls($"http://*:{port}");
+// Listening on any url with port from hosting
+builder.WebHost.UseUrls($"http://*:{port}");
 
 // --- Controllers + Swagger ---
 builder.Services.AddControllers();
@@ -139,11 +139,11 @@ if (app.Environment.IsDevelopment())
 // app.UseHttpsRedirection();
 
 //Init Migration
-//using (var scope = app.Services.CreateScope())    // Comment for local testing
-//{
-//    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-//    db.Database.Migrate();
-//}
+using (var scope = app.Services.CreateScope())    // Comment for local testing
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
 
 app.UseRouting();
 app.UseCors("cors");
