@@ -23,14 +23,15 @@ namespace AppChat.Data
 
             // ===== USERS =====
             modelBuilder.Entity<User>().HasData(
-                new User { Id = 1, FirstName = "Dang", LastName = "Khoa", PhoneNumber = "0901000001", Password = "123", AvatarUrl = "", IsOnline = true, LastSeen = new DateTime(2025, 11, 3, 12, 0, 0, DateTimeKind.Utc) },
-                new User { Id = 2, FirstName = "Minh", LastName = "Phuc", PhoneNumber = "0901000002", Password = "123", AvatarUrl = "", IsOnline = false, LastSeen = new DateTime(2025, 11, 3, 11, 55, 0, DateTimeKind.Utc) },
-                new User { Id = 3, FirstName = "Hai", LastName = "Dang", PhoneNumber = "0901000003", Password = "123", AvatarUrl = "", IsOnline = false, LastSeen = new DateTime(2025, 11, 3, 11, 50, 0, DateTimeKind.Utc) },
+                new User { Id = 1, FirstName = "Dang", LastName = "Khoa", PhoneNumber = "0901000001", Password = "123", AvatarUrl = "", IsOnline = false, LastSeen = new DateTime(2025, 11, 3, 12, 0, 0, DateTimeKind.Utc) },
+                new User { Id = 2, FirstName = "Phuoc", LastName = "Vo", PhoneNumber = "0792051912", Password = "123", AvatarUrl = "", IsOnline = false, LastSeen = new DateTime(2025, 11, 3, 11, 55, 0, DateTimeKind.Utc) },
+                new User { Id = 3, FirstName = "Huy", LastName = "Truong", PhoneNumber = "0886828499", Password = "123", AvatarUrl = "", IsOnline = false, LastSeen = new DateTime(2025, 11, 3, 11, 50, 0, DateTimeKind.Utc) },
                 new User { Id = 4, FirstName = "Thao", LastName = "Nguyen", PhoneNumber = "0901000004", Password = "123", AvatarUrl = "", IsOnline = true, LastSeen = new DateTime(2025, 11, 3, 12, 0, 0, DateTimeKind.Utc) },
                 new User { Id = 5, FirstName = "Bao", LastName = "Tran", PhoneNumber = "0901000005", Password = "123", AvatarUrl = "", IsOnline = false, LastSeen = new DateTime(2025, 11, 3, 11, 0, 0, DateTimeKind.Utc) },
                 new User { Id = 6, FirstName = "Anh", LastName = "Tuan", PhoneNumber = "0901000006", Password = "123", AvatarUrl = "", IsOnline = true, LastSeen = new DateTime(2025, 11, 3, 12, 0, 0, DateTimeKind.Utc) },
                 new User { Id = 7, FirstName = "Ngoc", LastName = "Han", PhoneNumber = "0901000007", Password = "123", AvatarUrl = "", IsOnline = false, LastSeen = new DateTime(2025, 11, 3, 11, 30, 0, DateTimeKind.Utc) },
-                new User { Id = 8, FirstName = "Le", LastName = "Nam", PhoneNumber = "0901000008", Password = "123", AvatarUrl = "", IsOnline = false, LastSeen = new DateTime(2025, 11, 3, 11, 45, 0, DateTimeKind.Utc) }
+                new User { Id = 8, FirstName = "Le", LastName = "Nam", PhoneNumber = "0901000008", Password = "123", AvatarUrl = "", IsOnline = false, LastSeen = new DateTime(2025, 11, 3, 11, 45, 0, DateTimeKind.Utc) },
+                new User { Id = 9, FirstName = "Minh", LastName = "Phuc", PhoneNumber = "0901000009", Password = "123", AvatarUrl = "", IsOnline = false, LastSeen = new DateTime(2025, 11, 3, 11, 45, 0, DateTimeKind.Utc) }
 
             );
 

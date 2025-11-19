@@ -1,7 +1,9 @@
-﻿using AppChat.Models;
+﻿using AppChat.Data;
+using AppChat.Models;
 using AppChat.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
@@ -15,10 +17,12 @@ namespace AppChat.Controllers
     public class ContactController : ControllerBase
     {
         private readonly ContactService _service;
+        private readonly AppDbContext _context;
 
-        public ContactController(ContactService service)
+        public ContactController(ContactService service, AppDbContext context)
         {
             _service = service;
+            _context = context;
         }
 
         [Authorize]
@@ -48,6 +52,30 @@ namespace AppChat.Controllers
             {
                 return BadRequest("Error: " + e.Message);
             }
+        }
+
+        [HttpPost("add/{id}")]
+        public async Task<IActionResult> AddContact(int id)
+        {
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                    ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+            if (!int.TryParse(userIdClaim, out int userId))
+                return BadRequest("Invalid user ID in token.");
+
+            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+            if (existingUser == null) return Ok(new { message = "User not existed" });
+
+            var newContact = new Contact
+            {
+                UserIdContactA = userId,
+                UserIdContactB = id
+            };
+
+            await _context.AddAsync(newContact);
+            await _context.SaveChangesAsync();
+
+            return Ok();
         }
     }
 }

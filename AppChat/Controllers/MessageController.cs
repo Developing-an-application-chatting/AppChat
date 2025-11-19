@@ -91,7 +91,7 @@ namespace AppChat.Controllers
                         await dto.File.CopyToAsync(stream);
                     }
 
-                    fileUrl = $"/uploads/{fileName}";
+                    fileUrl = $"{Request.Scheme}://{Request.Host}/uploads/{fileName}";
                 }
 
                 // ====================================
