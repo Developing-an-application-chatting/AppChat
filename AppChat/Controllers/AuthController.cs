@@ -4,6 +4,7 @@ using AppChat.Models.DTOs;
 using AppChat.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.EntityFrameworkCore;
 
 namespace CSharpLearning.Controllers
@@ -21,66 +22,59 @@ namespace CSharpLearning.Controllers
             _context = context;
         }
 
-        [HttpPost("login")]  // Change the logic to check existing first and then register if it not
+        [HttpPost("register")]
+        public async Task<IActionResult> Register(RegisterDTO dto)
+        {
+            try
+            {
+                // Check if user are existing
+                var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.PhoneNumber == dto.PhoneNumber);
+                if (existingUser != null) return Ok(new { message = "User existed" }); // If existing, return
+
+                // Create new User
+                var newUser = new User
+                {
+                    PhoneNumber = dto.PhoneNumber,
+                    Password = dto.Password,
+                    FirstName = dto.FirstName,
+                    LastName = dto.LastName,
+                    AvatarUrl = dto.AvatarUrl,
+                };
+
+                // Save to DB
+                await _context.Users.AddAsync(newUser);
+                await _context.SaveChangesAsync();
+                return Created(string.Empty, new {message = "User created"});
+            }
+            catch (Exception e)
+            {
+                return BadRequest(new { message = e.Message });
+            }
+        }
+
+        [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDTO dto)
         {
             try
             {
-                // 1. Tìm user theo phone
-                var user = await _context.Users
-                    .FirstOrDefaultAsync(u => u.PhoneNumber == dto.PhoneNumber);
+                // Check user
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.PhoneNumber == dto.PhoneNumber);
 
-                // 2. Nếu chưa có → tạo user mới
-                if (user == null)
+                // Check if user information not valid
+                if (user == null || user.Password != dto.Password)
                 {
-                    user = new User
-                    {
-                        PhoneNumber = dto.PhoneNumber,
-                        FirstName = "",
-                        LastName = "",
-                        AvatarUrl = ""
-                    };
-
-                    await _context.Users.AddAsync(user);
-                    await _context.SaveChangesAsync();
+                    return Ok(new { message = "Invalid credentials" });
                 }
 
-                // 3. Tạo token
-                var token = _tokenService.GenerateToken(
-                    user.Id.ToString(),
-                    user.PhoneNumber
-                );
+                // Create and response token back to client
+                var accessToken = _tokenService.GenerateToken(user.Id.ToString(), user.PhoneNumber);
 
-                // 4. Trả response
-                return Ok(new
-                {
-                    accessToken = token,
-                    userId = user.Id
-                });
+                return Ok(new { accessToken, user.Id });
             }
             catch (Exception e)
             {
-                return BadRequest(e.Message);
+                return BadRequest(new { message = e.Message });
             }
-        }
-
-        // Update user information after register
-        [Authorize]
-        [HttpPut("update-profile")]
-        public async Task<IActionResult> UpdateProfile(UpdateProfileDTO dto)
-        {
-            var userId = User.FindFirst("id")?.Value;
-
-            var user = await _context.Users.FindAsync(Guid.Parse(userId));
-            if (user == null) return NotFound();
-
-            user.FirstName = dto.FirstName;
-            user.LastName = dto.LastName;
-            user.AvatarUrl = dto.AvatarUrl;
-
-            await _context.SaveChangesAsync();
-
-            return Ok();
         }
     }
 }
