@@ -1,5 +1,6 @@
 package com.example.mychatapp.ui.screens.onboarding
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -25,12 +26,11 @@ import androidx.navigation.NavController
 import com.example.mychatapp.R
 import com.example.mychatapp.model.modelData.Contact
 import com.example.mychatapp.model.viewModel.ContactRepository
+import com.example.mychatapp.network.RetrofitInstance
+import com.example.mychatapp.network.dto.LoginRequestDto
+import com.example.mychatapp.network.dto.RegisterRequestDto
 import com.example.mychatapp.ui.screens.onboarding.utils.SessionManager
 import kotlinx.coroutines.launch
-import com.example.mychatapp.network.dto.RegisterRequestDto
-import com.example.mychatapp.network.RetrofitInstance
-import android.widget.Toast
-import com.example.mychatapp.network.dto.LoginRequestDto
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -199,7 +199,7 @@ fun LoginUserProfileScreen(
 
                     isLoading = true
 
-                    val body = RegisterRequestDto(
+                    val registerBody = RegisterRequestDto(
                         firstName = firstName,
                         lastName = lastName,
                         phoneNumber = phoneNumber
@@ -207,50 +207,45 @@ fun LoginUserProfileScreen(
 
                     coroutineScope.launch {
                         try {
-                            // 1) GỌI API ĐĂNG KÝ
-                            val registerRes = api.register(body)
-
+                            // 1) GỌI API ĐĂNG KÝ (thực chất là login tạo user nếu chưa có)
+                            val registerRes = api.register(registerBody)
                             if (!registerRes.isSuccessful) {
                                 Toast.makeText(context, "Lỗi đăng ký: ${registerRes.code()}", Toast.LENGTH_SHORT).show()
                                 isLoading = false
                                 return@launch
                             }
 
-                            // 2) GỌI API ĐĂNG NHẬP (Để lấy Token và ID)
+                            // 2) GỌI API LOGIN
                             val loginRes = api.login(LoginRequestDto(phoneNumber))
-
                             if (!loginRes.isSuccessful) {
                                 Toast.makeText(context, "Đăng nhập thất bại: ${loginRes.code()}", Toast.LENGTH_SHORT).show()
                                 isLoading = false
                                 return@launch
                             }
 
-                            // Lấy dữ liệu từ body trả về
                             val loginData = loginRes.body()
                             if (loginData == null) {
-                                Toast.makeText(context, "Lỗi: Dữ liệu server trả về rỗng", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Dữ liệu server trả về rỗng", Toast.LENGTH_SHORT).show()
                                 isLoading = false
                                 return@launch
                             }
 
-                            // 3) CẬP NHẬT REPOSITORY (QUAN TRỌNG NHẤT)
-                            // Gán ID kiểu Int vào biến kiểu Int -> Hết lỗi Type mismatch
-                            ContactRepository.currentUserId = loginData.userId.toInt()
+                            // 3) CẬP NHẬT REPOSITORY
+                            ContactRepository.currentUserId = loginData.userId
 
-                            // 4) LƯU SESSION VÀO MÁY
+                            // 4) LƯU SESSION
                             sessionManager.saveUserSession(
-                                id = loginData.userId,
-                                name = loginData.name ?: "$firstName $lastName",
-                                token = loginData.token,
+                                id = loginData.userId.toString(),
+                                name = "$firstName $lastName",
+                                token = loginData.accessToken,
                                 avatarUrl = ""
                             )
 
-                            // 5) CẬP NHẬT DANH BẠ CỤC BỘ (Để hiển thị chính mình)
+                            // 5) CẬP NHẬT DANH BẠ CỤC BỘ
                             contactRepository.clear()
                             contactRepository.addSelfToLocal(
                                 Contact(
-                                    // Chuyển ID sang String vì giao diện yêu cầu String -> Hết lỗi Type mismatch
-                                    id = loginData.userId.toInt(),
+                                    id = loginData.userId,
                                     name = loginData.name ?: "$firstName $lastName",
                                     status = "Online",
                                     isOnline = true,

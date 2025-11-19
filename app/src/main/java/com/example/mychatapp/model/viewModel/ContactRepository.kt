@@ -37,18 +37,19 @@ object ContactRepository {
                 if (response.isSuccessful && response.body() != null) {
                     val wrapper = response.body()!!
 
-                    // Map từ DTO sang Model UI (Contact.kt)
                     val mappedList = wrapper.contacts.map { item ->
-                        val info = item.contactInfo
+                        val u = item.user
                         Contact(
-                            id = info.id,
-                            name = "${info.lastName} ${info.firstName}",
-                            avatarUrl = info.avatarUrl?.let { "$BASE_URL$it" }, // Gắn domain vào ảnh
-                            isOnline = info.isOnline,
-                            status = if (info.isOnline) "Online" else "Offline"
+                            id = u.id,
+                            name = u.fullName,
+                            avatarUrl = u.avatarUrl?.let { "$BASE_URL$it" },
+                            isOnline = u.isOnline,
+                            status = if (u.isOnline) "Online" else "Offline"
                         )
                     }
                     _contacts.value = mappedList
+                } else {
+                    Log.e("ContactRepo", "Fetch contacts failed: ${response.code()} ${response.message()}")
                 }
             } catch (e: Exception) {
                 Log.e("ContactRepo", "Lỗi lấy danh bạ: ${e.message}")
@@ -61,17 +62,23 @@ object ContactRepository {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val dtoList = api.getAllUsers()
+
                 val mappedList = dtoList.map { u ->
+                    val avatar = u.avatarUrl?.let { path ->
+                        if (path.startsWith("http")) path else "$BASE_URL$path"
+                    }
+
                     Contact(
                         id = u.id,
                         name = "${u.lastName} ${u.firstName}",
-                        avatarUrl = u.avatarUrl?.let { "$BASE_URL$it" },
+                        avatarUrl = avatar,
                         isOnline = u.isOnline,
                         status = if (u.isOnline) "Online" else "Offline"
                     )
                 }
-                // Lọc bỏ bản thân mình ra khỏi danh sách tìm kiếm
+
                 _allUsers.value = mappedList.filter { it.id != currentUserId }
+
             } catch (e: Exception) {
                 Log.e("ContactRepo", "Lỗi lấy list user: ${e.message}")
             }
@@ -83,7 +90,6 @@ object ContactRepository {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val request = AddContactRequest(
-                    userId = currentUserId,
                     friendId = friendId.toInt()
                 )
                 val response = api.addFriend(request)
@@ -120,9 +126,7 @@ object ContactRepository {
 
     fun addSelfToLocal(user: Contact) {
         val currentList = _contacts.value.toMutableList()
-        // Xóa user cũ nếu trùng ID (để cập nhật mới)
         currentList.removeIf { it.id == user.id }
-        // Thêm user mới vào đầu danh sách (hoặc cuối tùy bạn)
         currentList.add(0, user)
         _contacts.value = currentList
     }

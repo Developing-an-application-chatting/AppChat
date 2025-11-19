@@ -20,19 +20,8 @@ data class UserDto(
     val isOnline: Boolean
 )
 
-// 2. Dùng để hứng response của API /Contact
-data class ContactResponseWrapper(
-    val userId: Int,
-    val contacts: List<ContactItemDto>
-)
-
 data class ContactItemDto(
     @SerializedName("Id") val relationshipId: Int, // ID của bảng Contact
     val contactInfo: UserDto // Thông tin người bạn
 )
 
-// 3. Dùng để gửi request kết bạn
-data class AddContactRequest(
-    val userId: Int,   // Tạm thời gửi ID của mình
-    val friendId: Int
-)

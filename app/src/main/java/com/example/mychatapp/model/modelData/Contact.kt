@@ -1,7 +1,7 @@
 package com.example.mychatapp.model.modelData
 
 data class Contact(
-    val id: Int, // 👈 ĐỔI TỪ String SANG Int Ở ĐÂY
+    val id: Int,
     val name: String,
     val lastMessage: String? = null,
     val time: String? = null,
@@ -9,4 +9,3 @@ data class Contact(
     val isOnline: Boolean = false,
     val status: String = "Offline"
 )
-

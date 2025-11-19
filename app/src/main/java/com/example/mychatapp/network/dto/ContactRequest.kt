@@ -1,4 +1,5 @@
 package com.example.mychatapp.network.dto
 
-class ContactRequest {
-}
+data class AddContactRequest(
+    val friendId: Int
+)
