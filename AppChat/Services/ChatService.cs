@@ -1,3 +1,4 @@
+using AppChat.Models;
 using AppChat.Repositories;
 using System;
 using System.Collections.Generic;
@@ -42,9 +43,13 @@ namespace AppChat.Services
             var result = new List<object>();
             foreach (var chat in chats)
             {
-                var lastMessage = (await _messageRepo.GetMessagesByChatIdAsync(chat.Id)).LastOrDefault();
+                var messages = await _messageRepo.GetMessagesByChatIdAsync(chat.Id);
+                var lastMessage = messages.LastOrDefault();
                 var partnerId = chat.UserAId == userId ? chat.UserBId : chat.UserAId;
                 var partnerInfo = usersDict.ContainsKey(partnerId) ? usersDict[partnerId] : null;
+
+                int unreadCount = messages
+                    .Count(m => m.Status == "sent" && m.SenderId != userId);
 
                 result.Add(new
                 {
@@ -53,10 +58,10 @@ namespace AppChat.Services
                         chat.Id,
                         LastMessage = lastMessage?.Content ?? "(Không có tin nhắn)",
                         LastMessageTime = lastMessage?.SentTime,
-                        chat.UnreadCount
+                        UnreadCount = unreadCount
                     },
                     Info = partnerInfo
-                });
+                });                                                                         
             }
 
             return result;
