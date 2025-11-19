@@ -22,10 +22,16 @@ Console.WriteLine($"Connection string: {connectionString}");
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     if (builder.Environment.IsDevelopment())
-        options.UseSqlServer(connectionString);
+        options.UseSqlServer(connectionString); // For testing local
     else
-        options.UseNpgsql(connectionString);
+        options.UseNpgsql(connectionString);  // For deploy 
 });
+
+// PORT
+//var port = Environment.GetEnvironmentVariable("PORT") ?? "5047";   // Comment for local testing
+
+//// Listening on any url with port from hosting
+//builder.WebHost.UseUrls($"http://*:{port}");
 
 // --- Controllers + Swagger ---
 builder.Services.AddControllers();
@@ -131,6 +137,14 @@ if (app.Environment.IsDevelopment())
 }
 
 // app.UseHttpsRedirection();
+
+//Init Migration
+//using (var scope = app.Services.CreateScope())    // Comment for local testing
+//{
+//    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+//    db.Database.Migrate();
+//}
+
 app.UseRouting();
 app.UseCors("cors");
 
