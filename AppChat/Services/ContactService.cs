@@ -37,7 +37,7 @@ namespace AppChat.Services
                             u.Id,
                             FullName = u.LastName + " " + u.FirstName,
                             u.IsOnline,
-                            u.AvatarUrl
+                            u.PhoneNumber,
                         }
                     });
                 }

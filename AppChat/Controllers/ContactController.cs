@@ -54,8 +54,8 @@ namespace AppChat.Controllers
             }
         }
 
-        [HttpPost("add/{id}")]
-        public async Task<IActionResult> AddContact(int id)
+        [HttpPost("add/{phoneNumber}")]
+        public async Task<IActionResult> AddContact(string phoneNumber)
         {
             var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)
                     ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
@@ -63,19 +63,24 @@ namespace AppChat.Controllers
             if (!int.TryParse(userIdClaim, out int userId))
                 return BadRequest("Invalid user ID in token.");
 
-            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phoneNumber);
             if (existingUser == null) return Ok(new { message = "User not existed" });
+
+            var existed = await _context.Contacts
+                .AnyAsync(c => c.UserIdContactA == userId
+                            && c.UserIdContactB == existingUser.Id);
+            if (existed) return Ok(new { message = "Existed" });
 
             var newContact = new Contact
             {
                 UserIdContactA = userId,
-                UserIdContactB = id
+                UserIdContactB = existingUser.Id
             };
 
             await _context.AddAsync(newContact);
             await _context.SaveChangesAsync();
 
-            return Ok();
+            return Ok(new {message = "Add friend successfully!"});
         }
     }
 }
