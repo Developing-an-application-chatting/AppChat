@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <title>Mini Chat App - Tabs (Chat | Danh bạ)</title>
+    <link rel="stylesheet" href="css/app.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+</head>
+<body>
+    <div id="login">
+        <div class="auth-tabs">
+            <button id="loginTab" class="active" type="button">Đăng nhập</button>
+            <button id="registerTab" type="button">Đăng ký</button>
+        </div>
+
+        <form id="loginForm" class="auth-form active">
+            <label for="phoneNumber">Số điện thoại</label>
+            <input id="phoneNumber" placeholder="0987xxx..." autocomplete="tel" required>
+            <label for="password">Mật khẩu</label>
+            <input id="password" type="password" placeholder="******" required>
+            <button type="submit">Đăng nhập</button>
+        </form>
+
+        <form id="registerForm" class="auth-form">
+            <label for="registerPhone">Số điện thoại</label>
+            <input id="registerPhone" placeholder="0987xxx..." autocomplete="tel" required>
+            <label for="registerPassword">Mật khẩu</label>
+            <input id="registerPassword" type="password" placeholder="******" required>
+            <label for="firstName">Tên</label>
+            <input id="firstName" placeholder="Nguyễn" required>
+            <label for="lastName">Họ</label>
+            <input id="lastName" placeholder="Văn A" required>
+            <button type="submit">Tạo tài khoản</button>
+            <div class="auth-hint">Đã có tài khoản? Chọn tab Đăng nhập</div>
+        </form>
+    </div>
+
+    <div id="chatLayout">
+        <aside id="chatList">
+            <div class="chat-top-bar">
+                <div class="user-pill">
+                    <div class="user-avatar" id="userAvatar">--</div>
+                    <div class="user-meta">
+                        <strong id="userFullName">Khách</strong>
+                        <small id="userPhone">Chưa đăng nhập</small>
+                    </div>
+                </div>
+                <div class="chat-actions">
+                    <button id="addFriendBtn" class="ghost-btn icon-btn" type="button" title="Thêm bạn mới">&#x2795;</button>
+                    <button id="logoutBtn" class="ghost-btn" type="button" title="Đăng xuất">Thoát</button>
+                </div>
+            </div>
+
+            <!-- TABS -->
+            <div id="chatTabs">
+                <button id="tabChats" class="tab active">Chat</button>
+                <button id="tabContacts" class="tab">Danh bạ</button>
+            </div>
+
+            <div class="search-box">
+                <input id="searchInput" type="text" placeholder="Tìm tên hoặc số điện thoại">
+            </div>
+
+            <div id="chatItems"></div>
+            <div id="contactItems" style="display:none;"></div>
+        </aside>
+
+        <section id="chatDetail">
+            <div id="chatHeader">
+                <div id="chatTitle">Chọn cuộc trò chuyện</div>
+                <div id="chatSubtitle">Tin nhắn sẽ hiển thị tại đây</div>
+            </div>
+
+            <div id="messages"></div>
+
+            <div id="chatInput">
+                <textarea id="messageInput" placeholder="Nhập tin nhắn..."></textarea>
+                <label for="fileUpload" class="ghost-btn file-label" title="Đính kèm">&#128206;</label>
+                <input type="file" id="fileUpload" accept="image/*,video/*" />
+                <button id="sendBtn">Gửi</button>
+            </div>
+        </section>
+    </div>
+
+    <div id="addFriendOverlay" class="modal-overlay" aria-hidden="true">
+        <div class="modal-card" role="dialog" aria-modal="true">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+                <h3 style="margin:0">Thêm bạn mới</h3>
+                <button id="closeAddFriendBtn" class="ghost-btn icon-btn" type="button" aria-label="Đóng">&times;</button>
+            </div>
+            <label for="addFriendPhone" style="font-size:13px;color:var(--text-muted)">Nhập số điện thoại</label>
+            <input id="addFriendPhone" type="tel" placeholder="0987xxx..." autocomplete="tel">
+            <div id="addFriendInfo" class="modal-hint">Nhập số điện thoại và bấm Tìm để thêm bạn.</div>
+            <button id="confirmAddFriend" class="primary" type="button" style="background:var(--primary);color:#fff;padding:12px;border-radius:12px;border:none">Tìm bạn</button>
+        </div>
+    </div>
+    <script src="js/state.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/dom.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/chat-list.js"></script>
+    <script src="js/contacts.js"></script>
+    <script src="js/messages.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
