@@ -57,30 +57,38 @@ namespace AppChat.Controllers
         [HttpPost("add/{phoneNumber}")]
         public async Task<IActionResult> AddContact(string phoneNumber)
         {
-            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            try
+            {
+                var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier)
                     ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
 
-            if (!int.TryParse(userIdClaim, out int userId))
-                return BadRequest("Invalid user ID in token.");
+                if (!int.TryParse(userIdClaim, out int userId))
+                    return BadRequest("Invalid user ID in token.");
 
-            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phoneNumber);
-            if (existingUser == null) return Ok(new { message = "User not existed" });
+                var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.PhoneNumber == phoneNumber);
+                if (existingUser == null) return Ok(new { message = "User not existed" });
 
-            var existed = await _context.Contacts
-                .AnyAsync(c => c.UserIdContactA == userId
-                            && c.UserIdContactB == existingUser.Id);
-            if (existed) return Ok(new { message = "Existed" });
+                var existed = await _context.Contacts
+                    .AnyAsync(c => c.UserIdContactA == userId
+                                && c.UserIdContactB == existingUser.Id);
+                if (existed) return Ok(new { message = "Existed" });
 
-            var newContact = new Contact
+                var newContact = new Contact
+                {
+                    UserIdContactA = userId,
+                    UserIdContactB = existingUser.Id
+                };
+
+                await _context.AddAsync(newContact);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { message = "Add friend successfully!" });
+            }
+            catch (Exception e)
             {
-                UserIdContactA = userId,
-                UserIdContactB = existingUser.Id
-            };
-
-            await _context.AddAsync(newContact);
-            await _context.SaveChangesAsync();
-
-            return Ok(new {message = "Add friend successfully!"});
+                return BadRequest(new { message = e.Message });
+            }
+            
         }
     }
 }
