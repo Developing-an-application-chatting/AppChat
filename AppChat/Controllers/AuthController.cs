@@ -27,6 +27,11 @@ namespace CSharpLearning.Controllers
         {
             try
             {
+                // Check existing user
+                var existingUser = await _context.Users.AnyAsync(u => u.PhoneNumber == dto.PhoneNumber);
+                if (existingUser) return Ok(new { message = "User already exists" });
+
+                // Create new user
                 var newUser = new User
                 {
                     PhoneNumber = dto.PhoneNumber,
@@ -57,7 +62,7 @@ namespace CSharpLearning.Controllers
                 // Check if user information not valid
                 if (user == null || user.Password != dto.Password)
                 {
-                    return Ok(new { message = "Invalid credentials" });
+                    return Ok(new { message = "Invalid information" });
                 }
 
                 // Create and response token back to client
