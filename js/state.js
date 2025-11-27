@@ -1,5 +1,5 @@
 (function initState(app = window.ChatApp || (window.ChatApp = {})) {
-    const API_BASE = "https://appchat-production-fc6d.up.railway.app";
+    const API_BASE = "https://appchat-production-10cf.up.railway.app";
     const HUB_URL = `${API_BASE}/chatHub`;
     const SESSION_KEY = "miniChatSession";
 
