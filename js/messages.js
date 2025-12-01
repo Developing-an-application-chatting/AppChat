@@ -194,6 +194,19 @@
         const file = app.dom.fileUpload.files[0];
         if (!content && !file) return;
         app.dom.sendBtn.disabled = true;
+        const MAX_CLIENT_UPLOAD_BYTES = 1 * 1024 * 1024 * 1024; // 1 GB
+        if (file && file.size > MAX_CLIENT_UPLOAD_BYTES) {
+          alert(
+            `Tệp quá lớn (${(file.size / (1024 * 1024)).toFixed(
+              1
+            )} MB). Kích thước tối đa cho phép là ${(
+              MAX_CLIENT_UPLOAD_BYTES /
+              (1024 * 1024)
+            ).toFixed(0)} MB.`
+          );
+          app.dom.sendBtn.disabled = false;
+          return;
+        }
         const form = new FormData();
         const existingChat = Boolean(state.currentChatId);
         if (existingChat) form.append("ChatId", state.currentChatId);
@@ -201,46 +214,64 @@
         form.append("ReceiverId", state.currentReceiverId);
         form.append("Content", content);
         if (file) {
-            let type = "file";
-            if (file.type.startsWith("image/")) type = "image";
-            else if (file.type.startsWith("video/")) type = "video";
-            form.append("FileType", type);
-            form.append("File", file);
+          let type = "file";
+          if (file.type.startsWith("image/")) type = "image";
+          else if (file.type.startsWith("video/")) type = "video";
+          form.append("FileType", type);
+          form.append("File", file);
         } else {
-            form.append("FileType", "text");
+          form.append("FileType", "text");
         }
         try {
-            const endpoint = `${config.API_BASE}/message/send`;
-            const res = await fetch(endpoint, {
-                method: "POST",
-                headers: { Authorization: `Bearer ${state.token}` },
-                body: form
-            });
-            const data = await res.json();
-            if (!res.ok) {
-                throw new Error(data?.message || "Không thể gửi tin nhắn");
+          const endpoint = `${config.API_BASE}/message/send`;
+          const res = await fetch(endpoint, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${state.token}` },
+            body: form,
+          });
+          // Read response text first to surface detailed server errors
+          const resText = await res.text();
+          let data = null;
+          try {
+            data = resText ? JSON.parse(resText) : null;
+          } catch (e) {
+            data = resText;
+          }
+          if (!res.ok) {
+            const serverMsg =
+              data && data.message
+                ? data.message
+                : typeof data === "string"
+                ? data
+                : JSON.stringify(data);
+            throw new Error(serverMsg || "Không thể gửi tin nhắn");
+          }
+          if (!existingChat && data?.chatId) {
+            state.currentChatId = data.chatId;
+            state.isNewConversation = false;
+            if (
+              state.connection &&
+              state.connection.state === signalR.HubConnectionState.Connected
+            ) {
+              state.connection
+                .invoke("JoinGroup", data.chatId.toString())
+                .catch(console.error);
             }
-            if (!existingChat && data?.chatId) {
-                state.currentChatId = data.chatId;
-                state.isNewConversation = false;
-                if (state.connection && state.connection.state === signalR.HubConnectionState.Connected) {
-                    state.connection.invoke("JoinGroup", data.chatId.toString()).catch(console.error);
-                }
-                await app.chat.loadChatList();
-            }
-            if (data?.message) {
-                const appended = appendMessage(data.message);
-                if (appended) scrollMessagesToBottom();
-            } else if (state.currentChatId) {
-                openChat(state.currentChatId, state.currentReceiverName);
-            }
-            resetComposer();
-            setSubtitleToPresence(state.currentReceiverPresence);
+            await app.chat.loadChatList();
+          }
+          if (data?.message) {
+            const appended = appendMessage(data.message);
+            if (appended) scrollMessagesToBottom();
+          } else if (state.currentChatId) {
+            openChat(state.currentChatId, state.currentReceiverName);
+          }
+          resetComposer();
+          setSubtitleToPresence(state.currentReceiverPresence);
         } catch (error) {
-            console.error("Send message error", error);
-            alert("Gửi tin nhắn thất bại");
+          console.error("Send message error", error);
+          alert("Gửi tin nhắn thất bại");
         } finally {
-            app.dom.sendBtn.disabled = false;
+          app.dom.sendBtn.disabled = false;
         }
     }
 
