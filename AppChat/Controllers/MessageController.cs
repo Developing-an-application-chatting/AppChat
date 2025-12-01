@@ -59,12 +59,19 @@ namespace AppChat.Controllers
         }
 
         // POST: /message/send
+        [RequestSizeLimit(1073741824)]
         [Authorize]
         [HttpPost("send")]
         public async Task<IActionResult> SendMessage([FromForm] SendMessageDto dto)
         {
             try
             {
+                const long MAX_FILE_BYTES = 1L * 1024 * 1024 * 1024; // 1 GB
+                if (dto.File != null && dto.File.Length > MAX_FILE_BYTES)
+                {
+                    return StatusCode(413, new { message = "Tệp quá lớn. Kích thước tối đa là 1 GB." });
+                }
+
                 _logger.LogInformation("Received request: ChatId: {ChatId}, SenderId: {SenderId}, ReceiverId: {ReceiverId}, Content: {Content}",
                     dto.ChatId, dto.SenderId, dto.ReceiverId, dto.Content);
 
