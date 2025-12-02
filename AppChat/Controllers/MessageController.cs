@@ -3,12 +3,12 @@ using AppChat.Hubs;
 using AppChat.Models;
 using AppChat.Models.DTOs;
 using AppChat.Repositories;
-using AppChat.Services;
 using AppChat.Utils;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace AppChat.Controllers
 {
@@ -47,7 +47,7 @@ namespace AppChat.Controllers
                 // Check if messages are null?
                 if (messages == null || !messages.Any())
                 {
-                    return Ok(new List<Message>()); 
+                    return Ok(new List<Message>());
                 }
 
                 return Ok(messages);
@@ -72,17 +72,16 @@ namespace AppChat.Controllers
                     return StatusCode(413, new { message = "Tệp quá lớn. Kích thước tối đa là 1 GB." });
                 }
 
-                _logger.LogInformation("Received request: ChatId: {ChatId}, SenderId: {SenderId}, ReceiverId: {ReceiverId}, Content: {Content}",
-                    dto.ChatId, dto.SenderId, dto.ReceiverId, dto.Content);
-
-                _logger.LogInformation("Start processing file upload for message from user {SenderId} to {ReceiverId}.", dto.SenderId, dto.ReceiverId);
-
                 string? fileUrl = null;
 
+                if (!string.IsNullOrEmpty(dto.FileUrl))
+                {
+                    fileUrl = dto.FileUrl;
+                }
                 // ============================
                 // 1) Xử lý upload file nếu có
                 // ============================
-                if (dto.FileType != "text" && dto.File != null)
+                else if (dto.FileType != "text" && dto.File != null)
                 {
                     var wwwRoot = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
                     var uploadsDir = Path.Combine(wwwRoot, "uploads");
@@ -105,12 +104,9 @@ namespace AppChat.Controllers
                 // 2) Nếu ChatId null → tìm hoặc tạo chat
                 // ====================================
                 int chatId;
-                _logger.LogInformation("Check chatId from dto sending", dto.ChatId);
-
 
                 if (dto.ChatId == null)
                 {
-                    _logger.LogInformation("Checking if a chat exists between sender {SenderId} and receiver {ReceiverId}.", dto.SenderId, dto.ReceiverId);
 
                     // tìm xem A và B đã có chat chưa
                     var existingChat = await _context.Chats
@@ -122,7 +118,6 @@ namespace AppChat.Controllers
                     if (existingChat == null)
                     {
                         // tạo chat mới
-                        _logger.LogInformation("Creating new chat between sender {SenderId} and receiver {ReceiverId}.", dto.SenderId, dto.ReceiverId);
 
                         existingChat = new Chat
                         {
@@ -159,7 +154,6 @@ namespace AppChat.Controllers
                 };
 
                 _context.Messages.Add(message);
-                _logger.LogInformation("Message created with ChatId: {ChatId}, SenderId: {SenderId}, Content: {Content}", chatId, dto.SenderId, dto.Content ?? "No content (file message)");
 
                 // ============================
                 // 4) Cập nhật Chat (last message)
@@ -203,7 +197,6 @@ namespace AppChat.Controllers
                 // ============================
                 // 6) Gửi realtime SignalR
                 // ============================
-                _logger.LogInformation("Sending message {MessageId} to chat group {ChatId}.", message.Id, chatId);
 
                 // Realtime to Sender and Receiver
                 await _hub.Clients.User(chatUpdate.UserBId.ToString())
@@ -226,5 +219,182 @@ namespace AppChat.Controllers
                 return BadRequest(new { message = "Lỗi gửi tin nhắn", error = ex.Message });
             }
         }
+
+
+
+        [HttpPost("upload/init")]
+        public IActionResult InitUpload([FromBody] InitUploadRequest req)
+        {
+            var uploadId = Guid.NewGuid().ToString("N");
+            _logger.LogInformation("[UPLOAD INIT] FileName={FileName}, TotalChunks={TotalChunks}, UploadId={UploadId}",
+                req.FileName, req.TotalChunks, uploadId);
+
+            var tempDir = Path.Combine(_env.WebRootPath, "uploads_temp", uploadId);
+            Directory.CreateDirectory(tempDir);
+
+            System.IO.File.WriteAllText(
+                Path.Combine(tempDir, "info.json"),
+                JsonSerializer.Serialize(req)
+            );
+
+            _logger.LogInformation("[UPLOAD INIT] Created temp folder: {TempDir}", tempDir);
+
+            return Ok(new
+            {
+                uploadId = uploadId,
+                chunkSize = 2 * 1024 * 1024
+            });
+        }
+
+        public class InitUploadRequest
+        {
+            public string FileName { get; set; }
+            public int TotalChunks { get; set; }
+        }
+
+
+
+        [HttpPost("upload/chunk")]
+        public async Task<IActionResult> UploadChunk(
+            [FromForm] string uploadId,
+            [FromForm] int chunkIndex,
+            [FromForm] IFormFile fileChunk)
+        {
+            _logger.LogInformation("[UPLOAD CHUNK] UploadId={UploadId}, ChunkIndex={ChunkIndex}, Size={Size}",
+                uploadId, chunkIndex, fileChunk?.Length);
+
+            var tempDir = Path.Combine(_env.WebRootPath, "uploads_temp", uploadId);
+
+            if (!Directory.Exists(tempDir))
+            {
+                _logger.LogWarning("[UPLOAD CHUNK] FAILED - Upload folder not found. UploadId={UploadId}", uploadId);
+                return BadRequest("UploadId không tồn tại");
+            }
+
+            var chunkPath = Path.Combine(tempDir, $"chunk_{chunkIndex}");
+
+            _logger.LogInformation("[UPLOAD CHUNK] Saving chunk to: {ChunkPath}", chunkPath);
+
+            using (var stream = new FileStream(chunkPath, FileMode.Create))
+            {
+                await fileChunk.CopyToAsync(stream);
+            }
+
+            _logger.LogInformation("[UPLOAD CHUNK] SUCCESS - UploadId={UploadId}, ChunkIndex={ChunkIndex}", uploadId, chunkIndex);
+
+            return Ok(new { received = true });
+        }
+
+
+
+        [HttpGet("upload/status")]
+        public IActionResult GetUploadStatus([FromQuery] string uploadId)
+        {
+            var tempDir = Path.Combine(_env.WebRootPath, "uploads_temp", uploadId);
+
+            _logger.LogInformation("[UPLOAD STATUS] Checking status for UploadId={UploadId}", uploadId);
+
+            if (!Directory.Exists(tempDir))
+            {
+                _logger.LogWarning("[UPLOAD STATUS] FAILED - Folder not found. UploadId={UploadId}", uploadId);
+                return BadRequest("UploadId không tồn tại");
+            }
+
+            var chunks = Directory.GetFiles(tempDir, "chunk_*")
+                                  .Select(path => int.Parse(Path.GetFileName(path).Replace("chunk_", "")))
+                                  .OrderBy(x => x)
+                                  .ToList();
+
+            _logger.LogInformation("[UPLOAD STATUS] UploadId={UploadId}, ReceivedChunks={Count}", uploadId, chunks.Count);
+
+            return Ok(new { uploadedChunks = chunks });
+        }
+
+
+
+        [HttpPost("upload/complete")]
+        public IActionResult CompleteUpload([FromBody] CompleteUploadRequest req)
+        {
+            try
+            {
+                if (req == null || string.IsNullOrWhiteSpace(req.UploadId))
+                    return BadRequest("UploadId không hợp lệ");
+
+                var tempDir = Path.Combine(_env.WebRootPath, "uploads_temp", req.UploadId);
+
+                _logger.LogInformation("[UPLOAD COMPLETE] UploadId={UploadId}, TempDir={TempDir}",
+                    req.UploadId, tempDir);
+
+                if (!Directory.Exists(tempDir))
+                {
+                    _logger.LogWarning("[UPLOAD COMPLETE] Folder not found for {UploadId}", req.UploadId);
+                    return BadRequest("UploadId không tồn tại");
+                }
+
+                // Đọc metadata từ info.json
+                var metaPath = Path.Combine(tempDir, "info.json");
+                if (!System.IO.File.Exists(metaPath))
+                {
+                    _logger.LogWarning("[UPLOAD COMPLETE] info.json missing for {UploadId}", req.UploadId);
+                    return BadRequest("Thiếu metadata upload");
+                }
+
+                var metaJson = System.IO.File.ReadAllText(metaPath);
+                var meta = JsonSerializer.Deserialize<InitUploadRequest>(metaJson);
+
+                if (meta == null)
+                    return BadRequest("Lỗi metadata upload");
+
+                // Chuẩn bị thư mục uploads
+                var uploadsDir = Path.Combine(_env.WebRootPath, "uploads");
+                if (!Directory.Exists(uploadsDir))
+                    Directory.CreateDirectory(uploadsDir);
+
+                var finalPath = Path.Combine(uploadsDir, meta.FileName);
+
+                _logger.LogInformation("[UPLOAD COMPLETE] Merging file: {FinalPath}", finalPath);
+
+                // Ghép file từ các chunk
+                using (var finalStream = new FileStream(finalPath, FileMode.Create))
+                {
+                    for (int i = 0; i < meta.TotalChunks; i++)
+                    {
+                        var chunkPath = Path.Combine(tempDir, $"chunk_{i}");
+
+                        if (!System.IO.File.Exists(chunkPath))
+                        {
+                            _logger.LogError("[UPLOAD COMPLETE] Missing chunk {Index} for UploadId={UploadId}",
+                                i, req.UploadId);
+                            return BadRequest($"Thiếu chunk thứ {i}");
+                        }
+
+                        var bytes = System.IO.File.ReadAllBytes(chunkPath);
+                        finalStream.Write(bytes, 0, bytes.Length);
+                    }
+                }
+
+                // Tạo URL trả về FE
+                var fileUrl = $"{Request.Scheme}://{Request.Host}/uploads/{meta.FileName}";
+
+                _logger.LogInformation("[UPLOAD COMPLETE] Success. FileUrl={FileUrl}", fileUrl);
+
+                // Xoá thư mục tạm
+                Directory.Delete(tempDir, true);
+
+                return Ok(new { fileUrl });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[UPLOAD COMPLETE] Exception");
+                return BadRequest(new { message = "Lỗi hoàn tất upload", error = ex.Message });
+            }
+        }
+
+        public class CompleteUploadRequest
+        {
+            public string UploadId { get; set; }
+        }
+
+
     }
 }

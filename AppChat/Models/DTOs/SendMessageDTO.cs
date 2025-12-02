@@ -10,5 +10,6 @@
         public IFormFile? File { get; set; }
         public string? FileBase64 { get; set; }
         public string? FileName { get; set; }
+        public string? FileUrl { get; set; }
     }
 }
