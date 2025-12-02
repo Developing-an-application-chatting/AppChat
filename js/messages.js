@@ -150,7 +150,7 @@
             <div style="font-weight:600;margin-bottom:6px;">Đang gửi tệp: ${escapeHtml(
               fileName
             )}</div>
-            <div class="upload-progress" style="font-size:13px;color:#666">Đang tải lên... 0%</div>
+            <div class="upload-progress" style="font-size:13px;color:white">Đang tải lên... 0%</div>
         `;
 
     app.dom.messages.appendChild(bubble);
@@ -167,14 +167,14 @@
   function markTempUploadSuccess(bubble) {
     if (!bubble) return;
     const node = bubble.querySelector(".upload-progress");
-    if (node) node.textContent = `Đã tải xong ✔`;
+    if (node) node.textContent = `Đã tải xong`;
     bubble.classList.add("upload-success");
   }
 
   function markTempUploadError(bubble, msg = "Lỗi upload") {
     if (!bubble) return;
     const node = bubble.querySelector(".upload-progress");
-    if (node) node.textContent = `${msg} ❌`;
+    if (node) node.textContent = `${msg}`;
     bubble.classList.add("upload-error");
   }
 
@@ -314,7 +314,7 @@
       const senderLabel = msg.senderName || msg.SenderName || "";
       if (senderLabel) {
         chunks.push(
-          `<div style="font-size:12px;color:#4a4a4a;margin-bottom:4px;">${app.utils.sanitize(
+          `<div style="font-size:12px;color:white;margin-bottom:4px;">${app.utils.sanitize(
             senderLabel
           )}</div>`
         );
@@ -428,9 +428,6 @@
     const file = app.dom.fileUpload.files[0];
     if (!content && !file) return;
 
-    // NOTE: do NOT block the send button while uploading large files.
-    // Allow the user to keep sending text or other small files.
-
     const MAX_CLIENT_UPLOAD_BYTES = 1 * 1024 * 1024 * 1024; // 1 GB
     if (file && file.size > MAX_CLIENT_UPLOAD_BYTES) {
       alert(
@@ -450,10 +447,6 @@
     form.append("SenderId", state.userId);
     form.append("ReceiverId", state.currentReceiverId);
     form.append("Content", content);
-
-    // We'll support two flows:
-    // - Small files (< 5MB): send via existing /message/send with FormData File
-    // - Large files (>= 5MB): upload in chunks, then call /message/send with FileUrl
 
     let uploadedFileUrl = null;
     let tempBubble = null;
