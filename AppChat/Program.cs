@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 using System.Text;
+using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -167,6 +168,21 @@ app.UseStaticFiles(new StaticFileOptions
     OnPrepareResponse = ctx =>
     {
         ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+        try
+        {
+            var contentType = ctx.Context.Response.ContentType ?? string.Empty;
+            // If the file is not image/video/text/audio, force download via Content-Disposition
+            if (!contentType.StartsWith("image/") && !contentType.StartsWith("video/") && !contentType.StartsWith("text/") && !contentType.StartsWith("audio/"))
+            {
+                var physicalPath = ctx.File?.PhysicalPath ?? ctx.Context.Request.Path.Value ?? string.Empty;
+                var fileName = Path.GetFileName(physicalPath) ?? "file";
+                ctx.Context.Response.Headers["Content-Disposition"] = $"attachment; filename=\"{fileName}\"";
+            }
+        }
+        catch
+        {
+            // swallow — ensure static file still served even if header logic fails
+        }
     }
 });
 
