@@ -672,3 +672,67 @@ video {
         width: 100%;
     }
 }
+
+/* Toast notifications */
+.toast-container {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+.toast {
+    pointer-events: auto;
+    min-width: 220px;
+    max-width: 360px;
+    background: rgba(0, 0, 0, 0.75);
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 10px;
+    box-shadow: 0 8px 30px rgba(15, 23, 42, 0.25);
+    font-size: 13px;
+    line-height: 1.2;
+    opacity: 0;
+    transform: translateY(-6px) scale(0.99);
+    animation: toast-in 240ms cubic-bezier(.2, .9, .3, 1) forwards;
+}
+
+.toast.success {
+    background: linear-gradient(90deg, #1f8b4c, #16824a);
+}
+
+.toast.error {
+    background: linear-gradient(90deg, #d92b2b, #b71c1c);
+}
+
+.toast.info {
+    background: rgba(10, 124, 255, 0.95);
+}
+
+@keyframes toast-in {
+    from {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes toast-out {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(-6px) scale(0.98);
+    }
+}

@@ -46,68 +46,102 @@
     }
 
     async function login() {
-        const phoneNumber = app.dom.phoneInput.value.trim();
-        const password = app.dom.passwordInput.value.trim();
-        if (!phoneNumber || !password) return;
-        app.ui.toggleLoginState(true);
-        try {
-            const res = await fetch(`${config.API_BASE}/auth/login`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ phoneNumber, password })
-            });
-            const data = await res.json();
-            if (!data?.accessToken) {
-                alert("Đăng nhập thất bại, vui lòng kiểm tra lại thông tin.");
-                return;
-            }
-            state.token = data.accessToken;
-            state.userId = data.id;
-            state.fullName = data.fullName || data.name || "Bạn";
-            state.phoneNumber = data.phoneNumber || phoneNumber;
-            persistSession();
-            app.ui.showAppShell();
-            app.ui.updateUserBadge();
-            await app.messages.startSignalR();
-            await app.chat.loadChatList();
-        } catch (error) {
-            console.error("Login error", error);
-            alert("Không thể đăng nhập. Vui lòng thử lại sau.");
-        } finally {
-            app.ui.toggleLoginState(false);
+      const phoneNumber = app.dom.phoneInput.value.trim();
+      const password = app.dom.passwordInput.value.trim();
+      if (!phoneNumber || !password) return;
+      app.ui.toggleLoginState(true);
+      try {
+        const res = await fetch(`${config.API_BASE}/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phoneNumber, password }),
+        });
+        const data = await res.json();
+        const serverMsg = data?.message;
+        if (typeof serverMsg === "string" && serverMsg.trim()) {
+          if (serverMsg.includes("Invalid information")) {
+            app.ui.showToast(
+              "Thông tin đăng nhập không hợp lệ hoặc tài khoản không tồn tại.",
+              "error"
+            );
+            return;
+          }
         }
+        if (!res.ok) {
+          app.ui.showToast(
+            serverMsg || "Đăng nhập thất bại, vui lòng kiểm tra lại thông tin.",
+            "error"
+          );
+          return;
+        }
+        if (!data?.accessToken) {
+          app.ui.showToast(
+            serverMsg || "Đăng nhập thất bại, vui lòng kiểm tra lại thông tin.",
+            "error"
+          );
+          return;
+        }
+        state.token = data.accessToken;
+        state.userId = data.id;
+        state.fullName = data.fullName || data.name || "Bạn";
+        state.phoneNumber = data.phoneNumber || phoneNumber;
+        persistSession();
+        app.ui.showAppShell();
+        app.ui.updateUserBadge();
+        await app.messages.startSignalR();
+        await app.chat.loadChatList();
+      } catch (error) {
+        console.error("Login error", error);
+        app.ui.showToast("Không thể đăng nhập. Vui lòng thử lại sau.", "error");
+      } finally {
+        app.ui.toggleLoginState(false);
+      }
     }
 
     async function registerUser() {
-        const phoneNumber = app.dom.registerPhoneInput.value.trim();
-        const password = app.dom.registerPasswordInput.value.trim();
-        const firstName = app.dom.firstNameInput.value.trim();
-        const lastName = app.dom.lastNameInput.value.trim();
-        if (!phoneNumber || !password || !firstName || !lastName) {
-            alert("Vui lòng nhập đầy đủ thông tin đăng ký.");
+      const phoneNumber = app.dom.registerPhoneInput.value.trim();
+      const password = app.dom.registerPasswordInput.value.trim();
+      const firstName = app.dom.firstNameInput.value.trim();
+      const lastName = app.dom.lastNameInput.value.trim();
+      if (!phoneNumber || !password || !firstName || !lastName) {
+        app.ui.showToast("Vui lòng nhập đầy đủ thông tin đăng ký.", "error");
+        return;
+      }
+      app.ui.toggleRegisterState(true);
+      try {
+        const res = await fetch(`${config.API_BASE}/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phoneNumber, password, firstName, lastName }),
+        });
+        const data = await res.json();
+        const serverMsg = data?.message;
+        if (typeof serverMsg === "string" && serverMsg.trim()) {
+          if (serverMsg.includes("User already exists")) {
+            app.ui.showToast(
+              "Tài khoản đã tồn tại. Vui lòng đăng nhập hoặc sử dụng số khác.",
+              "error"
+            );
             return;
+          }
         }
-        app.ui.toggleRegisterState(true);
-        try {
-            const res = await fetch(`${config.API_BASE}/auth/register`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ phoneNumber, password, firstName, lastName })
-            });
-            const data = await res.json();
-            if (!res.ok) {
-                throw new Error(data?.message || "Đăng ký thất bại");
-            }
-            alert("Tạo tài khoản thành công. Vui lòng đăng nhập.");
-            app.dom.phoneInput.value = phoneNumber;
-            app.dom.passwordInput.focus();
-            app.ui.toggleAuthView("login");
-        } catch (error) {
-            console.error("Register error", error);
-            alert(error.message || "Không thể đăng ký.");
-        } finally {
-            app.ui.toggleRegisterState(false);
+        if (!res.ok) {
+          app.ui.showToast(serverMsg || "Đăng ký thất bại", "error");
+          return;
         }
+        app.ui.showToast(
+          "Tạo tài khoản thành công. Vui lòng đăng nhập.",
+          "success"
+        );
+        app.dom.phoneInput.value = phoneNumber;
+        app.dom.passwordInput.focus();
+        app.ui.toggleAuthView("login");
+      } catch (error) {
+        console.error("Register error", error);
+        app.ui.showToast(error.message || "Không thể đăng ký.", "error");
+      } finally {
+        app.ui.toggleRegisterState(false);
+      }
     }
 
     function logout() {
