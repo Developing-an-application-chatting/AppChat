@@ -336,9 +336,9 @@
           `<div class="message-attachment"><video controls src="${safeUrl}"></video></div>`
         );
       } else {
-        chunks.push(
-          `<div class="message-attachment"><a href="${safeUrl}" target="_blank" rel="noopener noreferrer">Tải tệp</a></div>`
-        );
+          chunks.push(
+            `<div class="message-attachment"><a href="${safeUrl}" download rel="noopener noreferrer">Tải tệp</a></div>`
+          );
       }
     }
     const stamp = app.utils.formatTimestamp(
