@@ -127,15 +127,15 @@ builder.Services.AddSignalR(options =>
 });
 
 
-long oneGb = 1L * 1024 * 1024 * 1024;
+long twoGb = 2L * 1024 * 1024 * 1024;
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {
-    serverOptions.Limits.MaxRequestBodySize = oneGb;
+    serverOptions.Limits.MaxRequestBodySize = twoGb;
 });
 
 builder.Services.Configure<FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = oneGb;
+    options.MultipartBodyLengthLimit = twoGb;
 });
 
 // ==============================
