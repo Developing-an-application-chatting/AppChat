@@ -428,7 +428,7 @@
     const file = app.dom.fileUpload.files[0];
     if (!content && !file) return;
 
-    const MAX_CLIENT_UPLOAD_BYTES = 1 * 1024 * 1024 * 1024; // 1 GB
+    const MAX_CLIENT_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024; // 2 GB
     if (file && file.size > MAX_CLIENT_UPLOAD_BYTES) {
       alert(
         `Tệp quá lớn (${(file.size / (1024 * 1024)).toFixed(
