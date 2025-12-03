@@ -11,6 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 using System.Text;
 using System.IO;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -139,6 +140,15 @@ builder.Services.Configure<FormOptions>(options =>
     options.MultipartBodyLengthLimit = twoGb;
 });
 
+// Configure forwarded headers so Request.Scheme is correct when behind proxies (e.g., Railway)
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    // Clear default restrictions so we accept forwarded headers from the platform
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 // ==============================
 // Build App
 // ==============================
@@ -185,6 +195,9 @@ app.UseStaticFiles(new StaticFileOptions
         }
     }
 });
+
+// Apply forwarded headers middleware early so downstream middleware sees correct scheme/host
+app.UseForwardedHeaders();
 
 app.UseAuthentication();
 app.UseAuthorization();
