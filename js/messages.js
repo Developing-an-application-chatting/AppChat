@@ -336,9 +336,27 @@
           `<div class="message-attachment"><video controls src="${safeUrl}"></video></div>`
         );
       } else {
-          chunks.push(
-            `<div class="message-attachment"><a href="${safeUrl}" download rel="noopener noreferrer">Tải tệp</a></div>`
-          );
+        // Derive a user-friendly file name (decode path segment) and show small icon by extension
+        let rawName = "";
+        try {
+          const urlObj = new URL(fileUrl, window.location.origin);
+          rawName = decodeURIComponent(urlObj.pathname.split("/").pop() || "");
+        } catch (e) {
+          rawName = decodeURIComponent((fileUrl || "").split("/").pop() || "");
+        }
+        const displayName = app.utils.sanitize(rawName || "file");
+        const ext = (rawName.split(".").pop() || "").toLowerCase();
+        let icon = "📄";
+        if (["zip", "rar", "7z", "gz", "tar"].includes(ext)) icon = "📦";
+        else if (["pdf"].includes(ext)) icon = "📄";
+        else if (["doc", "docx", "odt"].includes(ext)) icon = "📝";
+        else if (["xls", "xlsx", "csv"].includes(ext)) icon = "📊";
+        else if (["mp3", "wav", "ogg"].includes(ext)) icon = "🎵";
+        else if (["apk", "exe", "msi"].includes(ext)) icon = "⚠️";
+
+        chunks.push(
+          `<div class="message-attachment"><a href="${safeUrl}" download rel="noopener noreferrer" title="${displayName}">${icon} ${displayName}</a></div>`
+        );
       }
     }
     const stamp = app.utils.formatTimestamp(
