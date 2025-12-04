@@ -314,7 +314,7 @@
       const senderLabel = msg.senderName || msg.SenderName || "";
       if (senderLabel) {
         chunks.push(
-          `<div style="font-size:12px;color:white;margin-bottom:4px;">${app.utils.sanitize(
+          `<div style="font-size:12px;color:#2b3244;margin-bottom:4px;">${app.utils.sanitize(
             senderLabel
           )}</div>`
         );
